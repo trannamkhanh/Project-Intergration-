@@ -118,40 +118,31 @@ const AttendancePage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFormSubmit = () => {
-    if (editingRecord) {
-      setAttendance((prev) =>
-        prev.map((r) =>
-          r.AttendanceID === editingRecord.AttendanceID
-            ? {
-                ...r,
-                EmployeeName: formData.EmployeeName,
-                WorkDays: Number(formData.WorkDays),
-                LeaveDays: Number(formData.LeaveDays),
-                AbsentDays: Number(formData.AbsentDays),
-                Month: formData.Month,
-              }
-            : r,
-        ),
-      );
-    } else {
-      const newId =
-        attendance.length > 0
-          ? Math.max(...attendance.map((r) => r.AttendanceID)) + 1
-          : 1;
-      setAttendance((prev) => [
-        ...prev,
-        {
-          AttendanceID: newId,
-          EmployeeName: formData.EmployeeName,
-          WorkDays: Number(formData.WorkDays),
-          LeaveDays: Number(formData.LeaveDays),
-          AbsentDays: Number(formData.AbsentDays),
-          Month: formData.Month,
-        },
-      ]);
+  const handleFormSubmit = async () => {
+    try {
+      const payload = {
+        EmployeeID: formData.EmployeeID,
+        WorkDays: Number(formData.WorkDays),
+        LeaveDays: Number(formData.LeaveDays),
+        AbsentDays: Number(formData.AbsentDays),
+        Month: formData.Month,
+      };
+      if (editingRecord) {
+        const res = await attendanceService.update(editingRecord.AttendanceID, payload);
+        setAttendance((prev) =>
+          prev.map((r) =>
+            r.AttendanceID === editingRecord.AttendanceID ? res.data : r,
+          ),
+        );
+      } else {
+        const res = await attendanceService.create(payload);
+        setAttendance((prev) => [...prev, res.data]);
+      }
+      setFormOpen(false);
+    } catch (error) {
+      console.error("Loi khi luu cham cong:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi luu cham cong");
     }
-    setFormOpen(false);
   };
 
   const handleOpenDelete = (record) => {
@@ -159,10 +150,16 @@ const AttendancePage = () => {
     setDeleteOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    setAttendance((prev) =>
-      prev.filter((r) => r.AttendanceID !== deleteTarget.AttendanceID),
-    );
+  const handleConfirmDelete = async () => {
+    try {
+      await attendanceService.delete(deleteTarget.AttendanceID);
+      setAttendance((prev) =>
+        prev.filter((r) => r.AttendanceID !== deleteTarget.AttendanceID),
+      );
+    } catch (error) {
+      console.error("Loi khi xoa cham cong:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi xoa cham cong");
+    }
     setDeleteOpen(false);
     setDeleteTarget(null);
   };

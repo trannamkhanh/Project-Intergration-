@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import Grid from "@mui/material/Grid";
 import {
   Card,
@@ -11,6 +12,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  CircularProgress,
 } from "@mui/material";
 import {
   People,
@@ -18,43 +20,77 @@ import {
   Business,
   AttachMoney,
 } from "@mui/icons-material";
-import { mockDashboardStats, mockDepartments } from "../../services/mockData";
+import { reportService } from "../../services/api";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " VND";
 
-const statsCards = [
-  {
-    title: "Total Employees",
-    value: mockDashboardStats.totalEmployees,
-    icon: <People sx={{ fontSize: 40 }} />,
-    color: "#1565c0",
-  },
-  {
-    title: "Active Employees",
-    value: mockDashboardStats.activeEmployees,
-    icon: <CheckCircle sx={{ fontSize: 40 }} />,
-    color: "#2e7d32",
-  },
-  {
-    title: "Total Departments",
-    value: mockDashboardStats.totalDepartments,
-    icon: <Business sx={{ fontSize: 40 }} />,
-    color: "#7b1fa2",
-  },
-  {
-    title: "Total Payroll",
-    value: formatCurrency(mockDashboardStats.totalPayroll),
-    icon: <AttachMoney sx={{ fontSize: 40 }} />,
-    color: "#ed6c02",
-  },
-];
-
 const DashboardPage = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await reportService.getDashboardStats();
+        setStats(res.data);
+      } catch (error) {
+        console.error("Loi khi tai du lieu dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+      </Box>
+    );
+  }
+
+  const statsCards = [
+    {
+      title: "Tong nhan vien",
+      value: stats.totalEmployees,
+      icon: <People sx={{ fontSize: 40 }} />,
+      color: "#1565c0",
+    },
+    {
+      title: "Dang lam viec",
+      value: stats.activeEmployees,
+      icon: <CheckCircle sx={{ fontSize: 40 }} />,
+      color: "#2e7d32",
+    },
+    {
+      title: "Phong ban",
+      value: stats.totalDepartments,
+      icon: <Business sx={{ fontSize: 40 }} />,
+      color: "#7b1fa2",
+    },
+    {
+      title: "Tong luong",
+      value: formatCurrency(stats.totalPayroll),
+      icon: <AttachMoney sx={{ fontSize: 40 }} />,
+      color: "#ed6c02",
+    },
+  ];
+
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Dashboard Overview
+        Tong quan
       </Typography>
 
       {/* Stats Cards */}
@@ -108,25 +144,23 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Department Distribution
+                Phan bo phong ban
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Phong ban</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Employees
+                        So nhan vien
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDepartments.map((dept) => (
-                      <TableRow key={dept.DepartmentID} hover>
-                        <TableCell>{dept.DepartmentName}</TableCell>
-                        <TableCell align="right">
-                          {dept.EmployeeCount}
-                        </TableCell>
+                    {(stats.departmentDistribution || []).map((dept) => (
+                      <TableRow key={dept.name} hover>
+                        <TableCell>{dept.name}</TableCell>
+                        <TableCell align="right">{dept.value}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -141,20 +175,20 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Monthly Salary Trend
+                Xu huong luong hang thang
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Month</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Thang</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Total Salary
+                        Tong luong
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDashboardStats.monthlySalaryTrend.map((item) => (
+                    {(stats.monthlySalaryTrend || []).map((item) => (
                       <TableRow key={item.month} hover>
                         <TableCell>{item.month}</TableCell>
                         <TableCell align="right">
@@ -176,20 +210,20 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Status Distribution
+                Phan bo trang thai
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Trang thai</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Count
+                        So luong
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDashboardStats.statusDistribution.map((item) => (
+                    {(stats.statusDistribution || []).map((item) => (
                       <TableRow key={item.name} hover>
                         <TableCell>{item.name}</TableCell>
                         <TableCell align="right">{item.value}</TableCell>
@@ -206,20 +240,20 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Gender Distribution
+                Phan bo gioi tinh
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Gender</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Gioi tinh</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Count
+                        So luong
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDashboardStats.genderDistribution.map((item) => (
+                    {(stats.genderDistribution || []).map((item) => (
                       <TableRow key={item.name} hover>
                         <TableCell>{item.name}</TableCell>
                         <TableCell align="right">{item.value}</TableCell>
@@ -236,35 +270,38 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Attendance Summary
+                Tong hop cham cong
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Loai</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Days
+                        So ngay
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     <TableRow hover>
-                      <TableCell>Work Days</TableCell>
+                      <TableCell>Ngay lam viec</TableCell>
                       <TableCell align="right">
-                        {mockDashboardStats.attendanceSummary.totalWorkDays}
+                        {stats.attendanceSummary?.totalWorkDays || 0}
                       </TableCell>
                     </TableRow>
                     <TableRow hover>
-                      <TableCell>Leave Days</TableCell>
+                      <TableCell>Ngay nghi phep</TableCell>
                       <TableCell align="right">
-                        {mockDashboardStats.attendanceSummary.totalLeaveDays}
+                        {stats.attendanceSummary?.totalLeaveDays || 0}
                       </TableCell>
                     </TableRow>
                     <TableRow hover>
-                      <TableCell>Absent Days</TableCell>
-                      <TableCell align="right" sx={{ color: "#d32f2f", fontWeight: 600 }}>
-                        {mockDashboardStats.attendanceSummary.totalAbsentDays}
+                      <TableCell>Ngay vang mat</TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: "#d32f2f", fontWeight: 600 }}
+                      >
+                        {stats.attendanceSummary?.totalAbsentDays || 0}
                       </TableCell>
                     </TableRow>
                   </TableBody>

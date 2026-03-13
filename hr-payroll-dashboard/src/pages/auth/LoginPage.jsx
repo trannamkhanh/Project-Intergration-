@@ -17,6 +17,7 @@ import {
   Login as LoginIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthContext";
+import { authService } from "../../services/api";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -43,34 +44,17 @@ const LoginPage = () => {
 
     setLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Mock authentication voi 2 vai tro
-    if (username === "admin" && password === "admin123") {
-      const mockUser = {
-        id: 1,
-        fullName: "Quan tri vien",
-        email: "admin@company.com",
-        role: "Admin",
-      };
-      const mockToken = "mock-jwt-token-admin-123";
-      login(mockUser, mockToken);
+    try {
+      const res = await authService.login({ username, password });
+      const { token, user } = res.data;
+      login(user, token);
       navigate("/");
-    } else if (username === "user" && password === "user123") {
-      const mockUser = {
-        id: 2,
-        fullName: "Nhan vien",
-        email: "user@company.com",
-        role: "User",
-      };
-      const mockToken = "mock-jwt-token-user-456";
-      login(mockUser, mockToken);
-      navigate("/");
-    } else {
-      setError("Ten dang nhap hoac mat khau khong dung.");
+    } catch (err) {
+      const msg = err.response?.data?.error || "Ten dang nhap hoac mat khau khong dung.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -180,9 +164,6 @@ const LoginPage = () => {
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Admin: admin / admin123 (toan quyen)
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              User: user / user123 (chi xem)
             </Typography>
           </Box>
         </CardContent>

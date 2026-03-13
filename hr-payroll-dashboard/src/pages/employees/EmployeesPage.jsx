@@ -228,42 +228,24 @@ export default function EmployeesPage() {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const handleSave = () => {
-    const department = departments.find(
-      (d) => d.DepartmentID === formData.DepartmentID,
-    );
-    const position = positions.find(
-      (p) => p.PositionID === formData.PositionID,
-    );
-    if (dialogMode === "add") {
-      const maxId = employees.reduce(
-        (max, emp) => Math.max(max, emp.EmployeeID),
-        0,
-      );
-      setEmployees((prev) => [
-        ...prev,
-        {
-          EmployeeID: maxId + 1,
-          ...formData,
-          DepartmentName: department?.DepartmentName || "",
-          PositionName: position?.PositionName || "",
-        },
-      ]);
-    } else {
-      setEmployees((prev) =>
-        prev.map((emp) =>
-          emp.EmployeeID === selectedEmployee.EmployeeID
-            ? {
-                ...emp,
-                ...formData,
-                DepartmentName: department?.DepartmentName || "",
-                PositionName: position?.PositionName || "",
-              }
-            : emp,
-        ),
-      );
+  const handleSave = async () => {
+    try {
+      if (dialogMode === "add") {
+        const res = await employeeService.create(formData);
+        setEmployees((prev) => [...prev, res.data]);
+      } else {
+        const res = await employeeService.update(selectedEmployee.EmployeeID, formData);
+        setEmployees((prev) =>
+          prev.map((emp) =>
+            emp.EmployeeID === selectedEmployee.EmployeeID ? res.data : emp,
+          ),
+        );
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Loi khi luu nhan vien:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi luu nhan vien");
     }
-    handleCloseDialog();
   };
 
   const handleOpenDelete = (employee) => {
@@ -279,11 +261,17 @@ export default function EmployeesPage() {
     setDeleteConstraints([]);
   };
 
-  const handleConfirmDelete = () => {
-    setEmployees((prev) =>
-      prev.filter((emp) => emp.EmployeeID !== employeeToDelete.EmployeeID),
-    );
-    handleCloseDelete();
+  const handleConfirmDelete = async () => {
+    try {
+      await employeeService.delete(employeeToDelete.EmployeeID);
+      setEmployees((prev) =>
+        prev.filter((emp) => emp.EmployeeID !== employeeToDelete.EmployeeID),
+      );
+      handleCloseDelete();
+    } catch (error) {
+      console.error("Loi khi xoa nhan vien:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi xoa nhan vien");
+    }
   };
 
   const isFormValid =

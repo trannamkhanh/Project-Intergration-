@@ -77,6 +77,7 @@ export const payrollService = {
     api.get(`/payroll/employee/${employeeId}`, { params }),
   create: (data) => api.post("/payroll", data),
   update: (id, data) => api.put(`/payroll/${id}`, data),
+  delete: (id) => api.delete(`/payroll/${id}`),
 };
 
 // ============ ATTENDANCE ============
@@ -86,12 +87,16 @@ export const attendanceService = {
     api.get(`/attendance/employee/${employeeId}`, { params }),
   create: (data) => api.post("/attendance", data),
   update: (id, data) => api.put(`/attendance/${id}`, data),
+  delete: (id) => api.delete(`/attendance/${id}`),
 };
 
 // ============ DIVIDENDS ============
 export const dividendService = {
   getAll: (params) => api.get("/dividends", { params }),
   getByEmployee: (employeeId) => api.get(`/dividends/employee/${employeeId}`),
+  create: (data) => api.post("/dividends", data),
+  update: (id, data) => api.put(`/dividends/${id}`, data),
+  delete: (id) => api.delete(`/dividends/${id}`),
 };
 
 // ============ REPORTS ============

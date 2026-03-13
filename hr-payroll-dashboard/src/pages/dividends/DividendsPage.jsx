@@ -106,41 +106,29 @@ const DividendsPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    if (editingDividend) {
-      setDividends((prev) =>
-        prev.map((d) =>
-          d.DividendID === editingDividend.DividendID
-            ? {
-                ...d,
-                EmployeeName: formData.EmployeeName,
-                DividendAmount: Number(formData.DividendAmount),
-                Amount: Number(formData.DividendAmount),
-                DividendDate: formData.DividendDate,
-                Date: formData.DividendDate,
-              }
-            : d,
-        ),
-      );
-    } else {
-      const newId =
-        dividends.length > 0
-          ? Math.max(...dividends.map((d) => d.DividendID)) + 1
-          : 1;
-      setDividends((prev) => [
-        ...prev,
-        {
-          DividendID: newId,
-          EmployeeID: newId,
-          EmployeeName: formData.EmployeeName,
-          DividendAmount: Number(formData.DividendAmount),
-          Amount: Number(formData.DividendAmount),
-          DividendDate: formData.DividendDate,
-          Date: formData.DividendDate,
-        },
-      ]);
+  const handleSave = async () => {
+    try {
+      const payload = {
+        EmployeeID: editingDividend?.EmployeeID,
+        DividendAmount: Number(formData.DividendAmount),
+        DividendDate: formData.DividendDate,
+      };
+      if (editingDividend) {
+        const res = await dividendService.update(editingDividend.DividendID, payload);
+        setDividends((prev) =>
+          prev.map((d) =>
+            d.DividendID === editingDividend.DividendID ? res.data : d,
+          ),
+        );
+      } else {
+        const res = await dividendService.create(payload);
+        setDividends((prev) => [...prev, res.data]);
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Loi khi luu co tuc:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi luu co tuc");
     }
-    handleCloseDialog();
   };
 
   const handleOpenDelete = (dividend) => {
@@ -148,10 +136,16 @@ const DividendsPage = () => {
     setDeleteDialog(true);
   };
 
-  const handleDelete = () => {
-    setDividends((prev) =>
-      prev.filter((d) => d.DividendID !== deletingDividend.DividendID),
-    );
+  const handleDelete = async () => {
+    try {
+      await dividendService.delete(deletingDividend.DividendID);
+      setDividends((prev) =>
+        prev.filter((d) => d.DividendID !== deletingDividend.DividendID),
+      );
+    } catch (error) {
+      console.error("Loi khi xoa co tuc:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi xoa co tuc");
+    }
     setDeleteDialog(false);
     setDeletingDividend(null);
   };

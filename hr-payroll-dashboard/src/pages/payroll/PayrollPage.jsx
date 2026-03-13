@@ -150,41 +150,30 @@ const PayrollPage = () => {
     });
   };
 
-  const handleFormSubmit = () => {
-    if (formMode === "add") {
-      const newId =
-        salaries.length > 0
-          ? Math.max(...salaries.map((s) => s.SalaryID)) + 1
-          : 1;
-      const newSalary = {
-        SalaryID: newId,
-        EmployeeID: newId,
-        EmployeeName: formData.EmployeeName,
+  const handleFormSubmit = async () => {
+    try {
+      const payload = {
+        EmployeeID: formData.EmployeeID,
         BaseSalary: Number(formData.BaseSalary) || 0,
         Bonus: Number(formData.Bonus) || 0,
         Deductions: Number(formData.Deductions) || 0,
         NetSalary: formData.NetSalary,
         SalaryMonth: formData.SalaryMonth,
       };
-      setSalaries((prev) => [...prev, newSalary]);
-    } else {
-      setSalaries((prev) =>
-        prev.map((s) =>
-          s.SalaryID === editingSalaryId
-            ? {
-                ...s,
-                EmployeeName: formData.EmployeeName,
-                BaseSalary: Number(formData.BaseSalary) || 0,
-                Bonus: Number(formData.Bonus) || 0,
-                Deductions: Number(formData.Deductions) || 0,
-                NetSalary: formData.NetSalary,
-                SalaryMonth: formData.SalaryMonth,
-              }
-            : s,
-        ),
-      );
+      if (formMode === "add") {
+        const res = await payrollService.create(payload);
+        setSalaries((prev) => [...prev, res.data]);
+      } else {
+        const res = await payrollService.update(editingSalaryId, payload);
+        setSalaries((prev) =>
+          prev.map((s) => (s.SalaryID === editingSalaryId ? res.data : s)),
+        );
+      }
+      handleCloseFormDialog();
+    } catch (error) {
+      console.error("Loi khi luu luong:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi luu luong");
     }
-    handleCloseFormDialog();
   };
 
   const handleOpenDeleteDialog = (salary, e) => {
@@ -198,10 +187,16 @@ const PayrollPage = () => {
     setDeletingSalary(null);
   };
 
-  const handleConfirmDelete = () => {
-    setSalaries((prev) =>
-      prev.filter((s) => s.SalaryID !== deletingSalary.SalaryID),
-    );
+  const handleConfirmDelete = async () => {
+    try {
+      await payrollService.delete(deletingSalary.SalaryID);
+      setSalaries((prev) =>
+        prev.filter((s) => s.SalaryID !== deletingSalary.SalaryID),
+      );
+    } catch (error) {
+      console.error("Loi khi xoa luong:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi xoa luong");
+    }
     handleCloseDeleteDialog();
   };
 

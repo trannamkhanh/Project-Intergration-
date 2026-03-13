@@ -100,41 +100,39 @@ const DepartmentsPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
 
-    if (editingDepartment) {
-      setDepartments((prev) =>
-        prev.map((dept) =>
-          dept.DepartmentID === editingDepartment.DepartmentID
-            ? { ...dept, ...formData }
-            : dept,
-        ),
-      );
-    } else {
-      const newId =
-        departments.length > 0
-          ? Math.max(...departments.map((d) => d.DepartmentID)) + 1
-          : 1;
-      const newDepartment = {
-        DepartmentID: newId,
-        DepartmentName: formData.DepartmentName.trim(),
-        Description: formData.Description.trim(),
-        EmployeeCount: 0,
-      };
-      setDepartments((prev) => [...prev, newDepartment]);
+    try {
+      if (editingDepartment) {
+        const res = await departmentService.update(editingDepartment.DepartmentID, formData);
+        setDepartments((prev) =>
+          prev.map((dept) =>
+            dept.DepartmentID === editingDepartment.DepartmentID ? res.data : dept,
+          ),
+        );
+      } else {
+        const res = await departmentService.create(formData);
+        setDepartments((prev) => [...prev, res.data]);
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Loi khi luu phong ban:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi luu phong ban");
     }
-
-    handleCloseDialog();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingDepartment && deletingDepartment.EmployeeCount === 0) {
-      setDepartments((prev) =>
-        prev.filter(
-          (dept) => dept.DepartmentID !== deletingDepartment.DepartmentID,
-        ),
-      );
+      try {
+        await departmentService.delete(deletingDepartment.DepartmentID);
+        setDepartments((prev) =>
+          prev.filter((dept) => dept.DepartmentID !== deletingDepartment.DepartmentID),
+        );
+      } catch (error) {
+        console.error("Loi khi xoa phong ban:", error);
+        alert(error.response?.data?.error || "Co loi xay ra khi xoa phong ban");
+      }
     }
     handleCloseDelete();
   };

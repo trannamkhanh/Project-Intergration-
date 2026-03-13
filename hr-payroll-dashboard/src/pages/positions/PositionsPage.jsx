@@ -101,38 +101,39 @@ const PositionsPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
 
-    if (editingPosition) {
-      setPositions((prev) =>
-        prev.map((pos) =>
-          pos.PositionID === editingPosition.PositionID
-            ? { ...pos, ...formData }
-            : pos,
-        ),
-      );
-    } else {
-      const newId =
-        positions.length > 0
-          ? Math.max(...positions.map((p) => p.PositionID)) + 1
-          : 1;
-      const newPosition = {
-        PositionID: newId,
-        PositionName: formData.PositionName.trim(),
-        Description: formData.Description.trim(),
-      };
-      setPositions((prev) => [...prev, newPosition]);
+    try {
+      if (editingPosition) {
+        const res = await positionService.update(editingPosition.PositionID, formData);
+        setPositions((prev) =>
+          prev.map((pos) =>
+            pos.PositionID === editingPosition.PositionID ? res.data : pos,
+          ),
+        );
+      } else {
+        const res = await positionService.create(formData);
+        setPositions((prev) => [...prev, res.data]);
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Loi khi luu chuc vu:", error);
+      alert(error.response?.data?.error || "Co loi xay ra khi luu chuc vu");
     }
-
-    handleCloseDialog();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingPosition) {
-      setPositions((prev) =>
-        prev.filter((pos) => pos.PositionID !== deletingPosition.PositionID),
-      );
+      try {
+        await positionService.delete(deletingPosition.PositionID);
+        setPositions((prev) =>
+          prev.filter((pos) => pos.PositionID !== deletingPosition.PositionID),
+        );
+      } catch (error) {
+        console.error("Loi khi xoa chuc vu:", error);
+        alert(error.response?.data?.error || "Co loi xay ra khi xoa chuc vu");
+      }
     }
     handleCloseDelete();
   };
