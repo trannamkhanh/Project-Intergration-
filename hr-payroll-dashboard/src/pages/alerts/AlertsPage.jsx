@@ -48,17 +48,17 @@ const typeIconMap = {
 };
 
 const typeLabelMap = {
-  anniversary: "Ky niem",
-  leave: "Nghi phep",
-  salary: "Luong",
+  anniversary: "Kỷ niệm",
+  leave: "Nghỉ phép",
+  salary: "Lương",
 };
 
-const filterOptions = ["Tat ca", "Ky niem", "Nghi phep", "Luong"];
+const filterOptions = ["Tất cả", "Kỷ niệm", "Nghỉ phép", "Lương"];
 const filterMap = {
-  "Tat ca": "all",
-  "Ky niem": "anniversary",
-  "Nghi phep": "leave",
-  Luong: "salary",
+  "Tất cả": "all",
+  "Kỷ niệm": "anniversary",
+  "Nghỉ phép": "leave",
+  Lương: "salary",
 };
 
 function formatDateVN(dateStr) {
@@ -76,7 +76,7 @@ function generateAlerts(employees, salaries, attendance) {
   let id = 1;
   const today = new Date();
 
-  // Canh bao ky niem ngay vao lam
+  // Cảnh báo kỷ niệm ngày vào làm
   employees.forEach((emp) => {
     if (!emp.HireDate) return;
     const hireDate = new Date(emp.HireDate);
@@ -94,8 +94,8 @@ function generateAlerts(employees, salaries, attendance) {
         alerts.push({
           id: id++,
           type: "anniversary",
-          title: "Ky niem ngay lam viec",
-          message: `${emp.FullName} se ky niem ${years} nam lam viec`,
+          title: "Kỷ niệm ngày làm việc",
+          message: `${emp.FullName} sẽ kỷ niệm ${years} năm làm việc`,
           severity: "info",
           read: diffDays < 0,
           date: anniversaryThisYear.toISOString().split("T")[0],
@@ -104,14 +104,14 @@ function generateAlerts(employees, salaries, attendance) {
     }
   });
 
-  // Canh bao nghi phep qua han
+  // Cảnh báo nghỉ phép quá hạn
   attendance.forEach((record) => {
     if (record.LeaveDays > 3 || record.AbsentDays > 1) {
       alerts.push({
         id: id++,
         type: "leave",
-        title: record.AbsentDays > 1 ? "Vang mat nhieu" : "Nghi phep nhieu",
-        message: `${record.EmployeeName} co ${record.LeaveDays} ngay nghi phep va ${record.AbsentDays} ngay vang mat trong thang ${record.Month}`,
+        title: record.AbsentDays > 1 ? "Vắng mặt nhiều" : "Nghỉ phép nhiều",
+        message: `${record.EmployeeName} có ${record.LeaveDays} ngày nghỉ phép và ${record.AbsentDays} ngày vắng mặt trong tháng ${record.Month}`,
         severity: record.AbsentDays > 2 ? "error" : "warning",
         read: false,
         date: today.toISOString().split("T")[0],
@@ -119,7 +119,7 @@ function generateAlerts(employees, salaries, attendance) {
     }
   });
 
-  // Canh bao chenh lech luong
+  // Cảnh báo chênh lệch lương
   const salaryByEmployee = {};
   salaries.forEach((s) => {
     if (!salaryByEmployee[s.EmployeeID]) salaryByEmployee[s.EmployeeID] = [];
@@ -139,8 +139,8 @@ function generateAlerts(employees, salaries, attendance) {
         alerts.push({
           id: id++,
           type: "salary",
-          title: "Chenh lech luong",
-          message: `${curr.EmployeeName}: luong thay doi ${diff > 0 ? "+" : ""}${diff.toFixed(1)}% tu ${prev.SalaryMonth} sang ${curr.SalaryMonth}`,
+          title: "Chênh lệch lương",
+          message: `${curr.EmployeeName}: lương thay đổi ${diff > 0 ? "+" : ""}${diff.toFixed(1)}% từ ${prev.SalaryMonth} sang ${curr.SalaryMonth}`,
           severity: "error",
           read: false,
           date: today.toISOString().split("T")[0],
@@ -155,7 +155,7 @@ function generateAlerts(employees, salaries, attendance) {
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("Tat ca");
+  const [activeFilter, setActiveFilter] = useState("Tất cả");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -169,7 +169,7 @@ export default function AlertsPage() {
         const generated = generateAlerts(empRes.data, salRes.data, attRes.data);
         setAlerts(generated);
       } catch (error) {
-        console.error("Loi khi tai du lieu canh bao:", error);
+        console.error("Lỗi khi tải dữ liệu cảnh báo:", error);
       } finally {
         setLoading(false);
       }
@@ -203,19 +203,19 @@ export default function AlertsPage() {
 
   const summaryCards = [
     {
-      title: "Tong canh bao",
+      title: "Tổng cảnh báo",
       value: totalCount,
       icon: <Notifications sx={{ fontSize: 36 }} />,
       color: "#1565c0",
     },
     {
-      title: "Chua doc",
+      title: "Chưa đọc",
       value: unreadCount,
       icon: <NotificationsActive sx={{ fontSize: 36 }} />,
       color: "#ed6c02",
     },
     {
-      title: "Nghiem trong",
+      title: "Nghiêm trọng",
       value: criticalCount,
       icon: <Warning sx={{ fontSize: 36 }} />,
       color: "#d32f2f",
@@ -233,7 +233,7 @@ export default function AlertsPage() {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -248,14 +248,14 @@ export default function AlertsPage() {
           mb: 3,
         }}
       >
-        <Typography variant="h4">Canh bao & Thong bao</Typography>
+        <Typography variant="h4">Cảnh báo & Thông báo</Typography>
         <Button
           variant="contained"
           startIcon={<MarkEmailRead />}
           onClick={handleMarkAllRead}
           disabled={unreadCount === 0}
         >
-          Danh dau tat ca da doc
+          Đánh dấu tất cả đã đọc
         </Button>
       </Box>
 
@@ -325,12 +325,12 @@ export default function AlertsPage() {
           >
             <CheckCircle sx={{ fontSize: 64, color: "success.main", mb: 2 }} />
             <Typography variant="h6" sx={{ color: "text.secondary" }}>
-              Khong co canh bao nao
+              Không có cảnh báo nào
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {activeFilter !== "Tat ca"
-                ? `Khong co canh bao loai "${activeFilter}" vao luc nay.`
-                : "Khong co canh bao nao vao luc nay."}
+              {activeFilter !== "Tất cả"
+                ? `Không có cảnh báo loại "${activeFilter}" vào lúc này.`
+                : "Không có cảnh báo nào vào lúc này."}
             </Typography>
           </CardContent>
         </Card>
@@ -407,7 +407,7 @@ export default function AlertsPage() {
                         />
                         {!alert.read && (
                           <Chip
-                            label="MOI"
+                            label="MỚI"
                             size="small"
                             color="error"
                             sx={{
@@ -444,7 +444,7 @@ export default function AlertsPage() {
                       }}
                     >
                       {!alert.read && (
-                        <Tooltip title="Danh dau da doc">
+                        <Tooltip title="Đánh dấu đã đọc">
                           <IconButton
                             size="small"
                             onClick={() => handleMarkAsRead(alert.id)}
@@ -454,7 +454,7 @@ export default function AlertsPage() {
                           </IconButton>
                         </Tooltip>
                       )}
-                      <Tooltip title="Xoa">
+                      <Tooltip title="Xóa">
                         <IconButton
                           size="small"
                           onClick={() => handleDelete(alert.id)}

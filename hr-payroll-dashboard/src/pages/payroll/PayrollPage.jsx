@@ -65,7 +65,7 @@ const PayrollPage = () => {
         const res = await payrollService.getAll();
         setSalaries(res.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu luong:", error);
+        console.error("Lỗi khi tải dữ liệu lương:", error);
       } finally {
         setLoading(false);
       }
@@ -171,8 +171,8 @@ const PayrollPage = () => {
       }
       handleCloseFormDialog();
     } catch (error) {
-      console.error("Loi khi luu luong:", error);
-      alert(error.response?.data?.error || "Co loi xay ra khi luu luong");
+      console.error("Lỗi khi lưu lương:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi lưu lương");
     }
   };
 
@@ -194,8 +194,8 @@ const PayrollPage = () => {
         prev.filter((s) => s.SalaryID !== deletingSalary.SalaryID),
       );
     } catch (error) {
-      console.error("Loi khi xoa luong:", error);
-      alert(error.response?.data?.error || "Co loi xay ra khi xoa luong");
+      console.error("Lỗi khi xóa lương:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi xóa lương");
     }
     handleCloseDeleteDialog();
   };
@@ -209,21 +209,21 @@ const PayrollPage = () => {
 
   const summaryCards = [
     {
-      title: "Tong quy luong",
+      title: "Tổng quỹ lương",
       value: formatVND(summaryStats.totalPayroll),
       icon: <AttachMoney sx={{ fontSize: 40 }} />,
       color: "#1565c0",
       bgColor: "#e3f2fd",
     },
     {
-      title: "Luong trung binh",
+      title: "Lương trung bình",
       value: formatVND(Math.round(summaryStats.averageSalary)),
       icon: <TrendingUp sx={{ fontSize: 40 }} />,
       color: "#2e7d32",
       bgColor: "#e8f5e9",
     },
     {
-      title: "Tong thuong",
+      title: "Tổng thưởng",
       value: formatVND(summaryStats.totalBonuses),
       icon: <AttachMoney sx={{ fontSize: 40 }} />,
       color: "#e65100",
@@ -235,7 +235,7 @@ const PayrollPage = () => {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -248,7 +248,7 @@ const PayrollPage = () => {
           component="h1"
           sx={{ fontWeight: 700 }}
         >
-          Quan ly luong
+          Quản lý lương
         </Typography>
         <Button
           variant="contained"
@@ -256,7 +256,7 @@ const PayrollPage = () => {
           onClick={handleOpenAddDialog}
           sx={{ textTransform: "none" }}
         >
-          Them luong
+          Thêm lương
         </Button>
       </Box>
 
@@ -264,7 +264,7 @@ const PayrollPage = () => {
         <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
-              label="Loc theo thang"
+              label="Lọc theo tháng"
               type="month"
               value={monthFilter}
               onChange={(e) => {
@@ -278,7 +278,7 @@ const PayrollPage = () => {
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <TextField
-              label="Tim kiem nhan vien"
+              label="Tìm kiếm nhân viên"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -297,7 +297,7 @@ const PayrollPage = () => {
           </Grid>
           <Grid size={{ xs: 12, sm: 12, md: 4 }}>
             <Chip
-              label={`${filteredSalaries.length} ban ghi`}
+              label={`${filteredSalaries.length} bản ghi`}
               color="primary"
               variant="outlined"
             />
@@ -360,13 +360,13 @@ const PayrollPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Ten nhan vien</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Luong co ban</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Thuong</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Khau tru</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Luong thuc nhan</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="center">Thang</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="center">Thao tac</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Lương cơ bản</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Thưởng</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Khấu trừ</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">Lương thực nhận</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="center">Tháng</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="center">Thao tác</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -391,7 +391,7 @@ const PayrollPage = () => {
                       <Chip label={salary.SalaryMonth} size="small" />
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Sua">
+                      <Tooltip title="Sửa">
                         <IconButton
                           size="small"
                           color="primary"
@@ -400,7 +400,7 @@ const PayrollPage = () => {
                           <Edit fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Xoa">
+                      <Tooltip title="Xóa">
                         <IconButton
                           size="small"
                           color="error"
@@ -416,7 +416,7 @@ const PayrollPage = () => {
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="text.secondary">
-                      Khong tim thay ban ghi luong nao.
+                      Không tìm thấy bản ghi lương nào.
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -435,7 +435,7 @@ const PayrollPage = () => {
             setPage(0);
           }}
           rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="So dong moi trang:"
+          labelRowsPerPage="Số dòng mỗi trang:"
         />
       </Paper>
 
@@ -443,30 +443,30 @@ const PayrollPage = () => {
         {selectedEmployee && (
           <>
             <DialogTitle sx={{ fontWeight: 700 }}>
-              Lich su luong - {selectedEmployee.EmployeeName}
+              Lịch sử lương - {selectedEmployee.EmployeeName}
             </DialogTitle>
             <DialogContent dividers>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Luong co ban</Typography>
+                  <Typography variant="body2" color="text.secondary">Lương cơ bản</Typography>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {formatVND(selectedEmployee.BaseSalary)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Thuong</Typography>
+                  <Typography variant="body2" color="text.secondary">Thưởng</Typography>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#2e7d32" }}>
                     {formatVND(selectedEmployee.Bonus)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Khau tru</Typography>
+                  <Typography variant="body2" color="text.secondary">Khấu trừ</Typography>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#d32f2f" }}>
                     {formatVND(selectedEmployee.Deductions)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Luong thuc nhan</Typography>
+                  <Typography variant="body2" color="text.secondary">Lương thực nhận</Typography>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1565c0" }}>
                     {formatVND(selectedEmployee.NetSalary)}
                   </Typography>
@@ -474,17 +474,17 @@ const PayrollPage = () => {
               </Grid>
 
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                Bang luong hang thang
+                Bảng lương hàng tháng
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Thang</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Luong co ban</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Thuong</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Khau tru</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Thuc nhan</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Tháng</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Lương cơ bản</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Thưởng</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Khấu trừ</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">Thực nhận</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -504,7 +504,7 @@ const PayrollPage = () => {
               </TableContainer>
             </DialogContent>
             <DialogActions sx={{ px: 3, py: 2 }}>
-              <Button onClick={handleCloseDialog} variant="contained">Dong</Button>
+              <Button onClick={handleCloseDialog} variant="contained">Đóng</Button>
             </DialogActions>
           </>
         )}
@@ -512,19 +512,19 @@ const PayrollPage = () => {
 
       <Dialog open={formDialogOpen} onClose={handleCloseFormDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700 }}>
-          {formMode === "add" ? "Them luong" : "Sua luong"}
+          {formMode === "add" ? "Thêm lương" : "Sửa lương"}
         </DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
             <TextField
-              label="Ten nhan vien"
+              label="Tên nhân viên"
               value={formData.EmployeeName}
               onChange={(e) => handleFormChange("EmployeeName", e.target.value)}
               fullWidth
               size="small"
             />
             <TextField
-              label="Luong co ban"
+              label="Lương cơ bản"
               type="number"
               value={formData.BaseSalary}
               onChange={(e) => handleFormChange("BaseSalary", e.target.value)}
@@ -532,7 +532,7 @@ const PayrollPage = () => {
               size="small"
             />
             <TextField
-              label="Thuong"
+              label="Thưởng"
               type="number"
               value={formData.Bonus}
               onChange={(e) => handleFormChange("Bonus", e.target.value)}
@@ -540,7 +540,7 @@ const PayrollPage = () => {
               size="small"
             />
             <TextField
-              label="Khau tru"
+              label="Khấu trừ"
               type="number"
               value={formData.Deductions}
               onChange={(e) => handleFormChange("Deductions", e.target.value)}
@@ -548,7 +548,7 @@ const PayrollPage = () => {
               size="small"
             />
             <TextField
-              label="Luong thuc nhan (tu dong tinh)"
+              label="Lương thực nhận (tự động tính)"
               value={formatVND(formData.NetSalary)}
               fullWidth
               size="small"
@@ -556,7 +556,7 @@ const PayrollPage = () => {
               sx={{ "& .MuiInputBase-input": { fontWeight: 600 } }}
             />
             <TextField
-              label="Thang luong"
+              label="Tháng lương"
               type="month"
               value={formData.SalaryMonth}
               onChange={(e) => handleFormChange("SalaryMonth", e.target.value)}
@@ -567,31 +567,31 @@ const PayrollPage = () => {
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={handleCloseFormDialog}>Huy</Button>
+          <Button onClick={handleCloseFormDialog}>Hủy</Button>
           <Button
             onClick={handleFormSubmit}
             variant="contained"
             disabled={!formData.EmployeeName || !formData.SalaryMonth}
           >
-            {formMode === "add" ? "Them" : "Luu"}
+            {formMode === "add" ? "Thêm" : "Lưu"}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Xac nhan xoa</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Xác nhận xóa</DialogTitle>
         <DialogContent>
           {deletingSalary && (
             <Typography>
-              Ban co chac chan muon xoa ban ghi luong cua{" "}
+              Bạn có chắc chắn muốn xóa bản ghi lương của{" "}
               <strong>{deletingSalary.EmployeeName}</strong> ({deletingSalary.SalaryMonth})?
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={handleCloseDeleteDialog}>Huy</Button>
+          <Button onClick={handleCloseDeleteDialog}>Hủy</Button>
           <Button onClick={handleConfirmDelete} variant="contained" color="error">
-            Xoa
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>

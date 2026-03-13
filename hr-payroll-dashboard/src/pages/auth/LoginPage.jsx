@@ -38,7 +38,7 @@ const LoginPage = () => {
     setError("");
 
     if (!username.trim() || !password.trim()) {
-      setError("Vui long nhap ten dang nhap va mat khau.");
+      setError("Vui lòng nhập tên đăng nhập và mật khẩu.");
       return;
     }
 
@@ -50,7 +50,7 @@ const LoginPage = () => {
       login(user, token);
       navigate("/");
     } catch (err) {
-      const msg = err.response?.data?.error || "Ten dang nhap hoac mat khau khong dung.";
+      const msg = err.response?.data?.error || "Tên đăng nhập hoặc mật khẩu không đúng.";
       setError(msg);
     } finally {
       setLoading(false);
@@ -84,7 +84,7 @@ const LoginPage = () => {
             align="center"
             sx={{ fontWeight: 700, color: "#1565c0", mb: 0.5 }}
           >
-            HR & Quan ly luong
+            HR & Quản lý lương
           </Typography>
 
           <Typography
@@ -92,7 +92,7 @@ const LoginPage = () => {
             align="center"
             sx={{ color: "text.secondary", mb: 4 }}
           >
-            Dang nhap vao he thong
+            Đăng nhập vào hệ thống
           </Typography>
 
           {error && (
@@ -103,7 +103,7 @@ const LoginPage = () => {
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
             <TextField
-              label="Ten dang nhap"
+              label="Tên đăng nhập"
               variant="outlined"
               fullWidth
               required
@@ -115,7 +115,7 @@ const LoginPage = () => {
             />
 
             <TextField
-              label="Mat khau"
+              label="Mật khẩu"
               variant="outlined"
               fullWidth
               required
@@ -150,7 +150,7 @@ const LoginPage = () => {
                 borderRadius: 2,
               }}
             >
-              {loading ? "Dang dang nhap..." : "Dang nhap"}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
           </Box>
 
@@ -160,10 +160,10 @@ const LoginPage = () => {
               color="text.secondary"
               sx={{ mb: 1, fontWeight: 600 }}
             >
-              Tai khoan thu nghiem:
+              Tài khoản thử nghiệm:
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Admin: admin / admin123 (toan quyen)
+              Admin: admin / admin123 (toàn quyền)
             </Typography>
           </Box>
         </CardContent>

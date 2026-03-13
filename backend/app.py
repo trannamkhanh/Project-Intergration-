@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from config import JWT_SECRET_KEY
@@ -16,6 +16,24 @@ def create_app():
     # Import va dang ky routes tu service.py
     from service import api
     app.register_blueprint(api, url_prefix="/api")
+
+    @app.route("/")
+    def index():
+        return jsonify({
+            "name": "HR-Payroll API",
+            "status": "running",
+            "endpoints": {
+                "health": "/api/health",
+                "auth": "/api/auth/login",
+                "employees": "/api/employees",
+                "departments": "/api/departments",
+                "positions": "/api/positions",
+                "payroll": "/api/payroll",
+                "attendance": "/api/attendance",
+                "dividends": "/api/dividends",
+                "dashboard": "/api/reports/dashboard",
+            }
+        })
 
     @app.route("/api/health")
     def health():

@@ -36,7 +36,7 @@ const DashboardPage = () => {
         const res = await reportService.getDashboardStats();
         setStats(res.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu dashboard:", error);
+        console.error("Lỗi khi tải dữ liệu dashboard:", error);
       } finally {
         setLoading(false);
       }
@@ -55,32 +55,32 @@ const DashboardPage = () => {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
 
   const statsCards = [
     {
-      title: "Tong nhan vien",
+      title: "Tổng nhân viên",
       value: stats.totalEmployees,
       icon: <People sx={{ fontSize: 40 }} />,
       color: "#1565c0",
     },
     {
-      title: "Dang lam viec",
+      title: "Đang làm việc",
       value: stats.activeEmployees,
       icon: <CheckCircle sx={{ fontSize: 40 }} />,
       color: "#2e7d32",
     },
     {
-      title: "Phong ban",
+      title: "Phòng ban",
       value: stats.totalDepartments,
       icon: <Business sx={{ fontSize: 40 }} />,
       color: "#7b1fa2",
     },
     {
-      title: "Tong luong",
+      title: "Tổng lương",
       value: formatCurrency(stats.totalPayroll),
       icon: <AttachMoney sx={{ fontSize: 40 }} />,
       color: "#ed6c02",
@@ -90,7 +90,7 @@ const DashboardPage = () => {
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Tong quan
+        Tổng quan
       </Typography>
 
       {/* Stats Cards */}
@@ -144,15 +144,15 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Phan bo phong ban
+                Phân bổ phòng ban
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Phong ban</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Phòng ban</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        So nhan vien
+                        Số nhân viên
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -175,15 +175,15 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Xu huong luong hang thang
+                Xu hướng lương hàng tháng
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Thang</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Tháng</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Tong luong
+                        Tổng lương
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -210,15 +210,15 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Phan bo trang thai
+                Phân bổ trạng thái
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Trang thai</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        So luong
+                        Số lượng
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -240,15 +240,15 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Phan bo gioi tinh
+                Phân bổ giới tính
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Gioi tinh</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Giới tính</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        So luong
+                        Số lượng
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -270,33 +270,33 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Tong hop cham cong
+                Tổng hợp chấm công
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Loai</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Loại</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        So ngay
+                        Số ngày
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     <TableRow hover>
-                      <TableCell>Ngay lam viec</TableCell>
+                      <TableCell>Ngày làm việc</TableCell>
                       <TableCell align="right">
                         {stats.attendanceSummary?.totalWorkDays || 0}
                       </TableCell>
                     </TableRow>
                     <TableRow hover>
-                      <TableCell>Ngay nghi phep</TableCell>
+                      <TableCell>Ngày nghỉ phép</TableCell>
                       <TableCell align="right">
                         {stats.attendanceSummary?.totalLeaveDays || 0}
                       </TableCell>
                     </TableRow>
                     <TableRow hover>
-                      <TableCell>Ngay vang mat</TableCell>
+                      <TableCell>Ngày vắng mặt</TableCell>
                       <TableCell
                         align="right"
                         sx={{ color: "#d32f2f", fontWeight: 600 }}

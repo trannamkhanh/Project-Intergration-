@@ -41,7 +41,7 @@ const DepartmentsPage = () => {
         const res = await departmentService.getAll();
         setDepartments(res.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu phong ban:", error);
+        console.error("Lỗi khi tải dữ liệu phòng ban:", error);
       } finally {
         setLoading(false);
       }
@@ -94,7 +94,7 @@ const DepartmentsPage = () => {
   const validate = () => {
     const errors = {};
     if (!formData.DepartmentName.trim()) {
-      errors.DepartmentName = "Ten phong ban la bat buoc";
+      errors.DepartmentName = "Tên phòng ban là bắt buộc";
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -117,8 +117,8 @@ const DepartmentsPage = () => {
       }
       handleCloseDialog();
     } catch (error) {
-      console.error("Loi khi luu phong ban:", error);
-      alert(error.response?.data?.error || "Co loi xay ra khi luu phong ban");
+      console.error("Lỗi khi lưu phòng ban:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi lưu phòng ban");
     }
   };
 
@@ -130,8 +130,8 @@ const DepartmentsPage = () => {
           prev.filter((dept) => dept.DepartmentID !== deletingDepartment.DepartmentID),
         );
       } catch (error) {
-        console.error("Loi khi xoa phong ban:", error);
-        alert(error.response?.data?.error || "Co loi xay ra khi xoa phong ban");
+        console.error("Lỗi khi xóa phòng ban:", error);
+        alert(error.response?.data?.error || "Có lỗi xảy ra khi xóa phòng ban");
       }
     }
     handleCloseDelete();
@@ -148,7 +148,7 @@ const DepartmentsPage = () => {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -166,7 +166,7 @@ const DepartmentsPage = () => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Business sx={{ fontSize: 32, color: "primary.main" }} />
           <Typography variant="h4" fontWeight={700}>
-            Phong ban
+            Phòng ban
           </Typography>
         </Box>
         <Button
@@ -175,7 +175,7 @@ const DepartmentsPage = () => {
           onClick={handleOpenAdd}
           sx={{ px: 3, py: 1 }}
         >
-          Them phong ban
+          Thêm phòng ban
         </Button>
       </Box>
 
@@ -208,7 +208,7 @@ const DepartmentsPage = () => {
                   </Typography>
                   <Chip
                     icon={<People sx={{ fontSize: 16 }} />}
-                    label={`${department.EmployeeCount} nhan vien`}
+                    label={`${department.EmployeeCount} nhân viên`}
                     size="small"
                     color="primary"
                     variant="outlined"
@@ -223,7 +223,7 @@ const DepartmentsPage = () => {
                 </Typography>
               </CardContent>
               <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
-                <Tooltip title="Sua">
+                <Tooltip title="Sửa">
                   <IconButton
                     size="small"
                     color="primary"
@@ -232,7 +232,7 @@ const DepartmentsPage = () => {
                     <Edit fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Xoa">
+                <Tooltip title="Xóa">
                   <IconButton
                     size="small"
                     color="error"
@@ -251,17 +251,17 @@ const DepartmentsPage = () => {
         <Box sx={{ textAlign: "center", py: 8 }}>
           <Business sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
           <Typography variant="h6" color="text.secondary">
-            Khong tim thay phong ban nao
+            Không tìm thấy phòng ban nào
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>
-            Hay bat dau bang cach them phong ban dau tien
+            Hãy bắt đầu bằng cách thêm phòng ban đầu tiên
           </Typography>
           <Button
             variant="contained"
             startIcon={<Add />}
             onClick={handleOpenAdd}
           >
-            Them phong ban
+            Thêm phòng ban
           </Button>
         </Box>
       )}
@@ -273,14 +273,14 @@ const DepartmentsPage = () => {
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700 }}>
-          {editingDepartment ? "Sua phong ban" : "Them phong ban"}
+          {editingDepartment ? "Sửa phòng ban" : "Thêm phòng ban"}
         </DialogTitle>
         <DialogContent dividers>
           <Box
             sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}
           >
             <TextField
-              label="Ten phong ban"
+              label="Tên phòng ban"
               name="DepartmentName"
               value={formData.DepartmentName}
               onChange={handleChange}
@@ -291,7 +291,7 @@ const DepartmentsPage = () => {
               autoFocus
             />
             <TextField
-              label="Mo ta"
+              label="Mô tả"
               name="Description"
               value={formData.Description}
               onChange={handleChange}
@@ -305,10 +305,10 @@ const DepartmentsPage = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDialog} color="inherit">
-            Huy
+            Hủy
           </Button>
           <Button onClick={handleSave} variant="contained">
-            {editingDepartment ? "Cap nhat" : "Tao moi"}
+            {editingDepartment ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -319,30 +319,30 @@ const DepartmentsPage = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Xoa phong ban</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Xóa phòng ban</DialogTitle>
         <DialogContent>
           {deletingDepartment && deletingDepartment.EmployeeCount > 0 ? (
             <Alert severity="warning" sx={{ mt: 1 }}>
-              Khong the xoa "{deletingDepartment.DepartmentName}" vi van con{" "}
-              <strong>{deletingDepartment.EmployeeCount} nhan vien</strong>{" "}
-              thuoc phong ban nay. Vui long chuyen hoac xoa tat ca nhan vien
-              khoi phong ban truoc khi xoa.
+              Không thể xóa "{deletingDepartment.DepartmentName}" vì vẫn còn{" "}
+              <strong>{deletingDepartment.EmployeeCount} nhân viên</strong>{" "}
+              thuộc phòng ban này. Vui lòng chuyển hoặc xóa tất cả nhân viên
+              khỏi phòng ban trước khi xóa.
             </Alert>
           ) : (
             <Typography sx={{ mt: 1 }}>
-              Ban co chac chan muon xoa phong ban "
-              <strong>{deletingDepartment?.DepartmentName}</strong>"? Hanh dong
-              nay khong the hoan tac.
+              Bạn có chắc chắn muốn xóa phòng ban "
+              <strong>{deletingDepartment?.DepartmentName}</strong>"? Hành động
+              này không thể hoàn tác.
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDelete} color="inherit">
-            Huy
+            Hủy
           </Button>
           {deletingDepartment && deletingDepartment.EmployeeCount === 0 && (
             <Button onClick={handleDelete} variant="contained" color="error">
-              Xoa
+              Xóa
             </Button>
           )}
         </DialogActions>

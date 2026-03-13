@@ -42,15 +42,15 @@ const DRAWER_WIDTH = 260;
 const DRAWER_COLLAPSED = 72;
 
 const menuItems = [
-  { text: "Tong quan", icon: <DashboardIcon />, path: "/" },
-  { text: "Nhan vien", icon: <PeopleIcon />, path: "/employees" },
-  { text: "Phong ban", icon: <BusinessIcon />, path: "/departments" },
-  { text: "Chuc vu", icon: <WorkIcon />, path: "/positions" },
-  { text: "Bang luong", icon: <PayrollIcon />, path: "/payroll" },
-  { text: "Cham cong", icon: <AttendanceIcon />, path: "/attendance" },
-  { text: "Co tuc", icon: <DividendsIcon />, path: "/dividends" },
-  { text: "Bao cao", icon: <ReportsIcon />, path: "/reports" },
-  { text: "Canh bao", icon: <NotificationsIcon />, path: "/alerts" },
+  { text: "Tổng quan", icon: <DashboardIcon />, path: "/" },
+  { text: "Nhân viên", icon: <PeopleIcon />, path: "/employees" },
+  { text: "Phòng ban", icon: <BusinessIcon />, path: "/departments" },
+  { text: "Chức vụ", icon: <WorkIcon />, path: "/positions" },
+  { text: "Bảng lương", icon: <PayrollIcon />, path: "/payroll" },
+  { text: "Chấm công", icon: <AttendanceIcon />, path: "/attendance" },
+  { text: "Cổ tức", icon: <DividendsIcon />, path: "/dividends" },
+  { text: "Báo cáo", icon: <ReportsIcon />, path: "/reports" },
+  { text: "Cảnh báo", icon: <NotificationsIcon />, path: "/alerts" },
 ];
 
 export default function MainLayout() {
@@ -91,7 +91,7 @@ export default function MainLayout() {
             noWrap
             sx={{ color: "primary.main", fontWeight: 800 }}
           >
-            HR Quan ly
+            HR Quản lý
           </Typography>
         )}
         {!isMobile && (
@@ -238,10 +238,10 @@ export default function MainLayout() {
                   item.path === location.pathname ||
                   (item.path !== "/" &&
                     location.pathname.startsWith(item.path)),
-              )?.text || "Tong quan"}
+              )?.text || "Tổng quan"}
             </Typography>
 
-            <Tooltip title="Thong bao">
+            <Tooltip title="Thông báo">
               <IconButton onClick={() => navigate("/alerts")} sx={{ mr: 1 }}>
                 <Badge badgeContent={4} color="error">
                   <NotificationsIcon />
@@ -249,7 +249,7 @@ export default function MainLayout() {
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Tai khoan">
+            <Tooltip title="Tài khoản">
               <IconButton onClick={handleMenuOpen}>
                 <Avatar
                   sx={{
@@ -275,7 +275,7 @@ export default function MainLayout() {
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>
-                <LogoutIcon sx={{ mr: 1 }} /> Dang xuat
+                <LogoutIcon sx={{ mr: 1 }} /> Đăng xuất
               </MenuItem>
             </Menu>
           </Toolbar>

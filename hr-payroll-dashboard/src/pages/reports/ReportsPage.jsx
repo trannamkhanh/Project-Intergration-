@@ -29,7 +29,7 @@ import {
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " \u20AB";
 
-// ===== Xuat CSV =====
+// ===== Xuất CSV =====
 function exportCSV(filename, headers, rows) {
   const BOM = "\uFEFF";
   const csvContent =
@@ -44,12 +44,12 @@ function exportCSV(filename, headers, rows) {
   link.click();
 }
 
-// ===== TAB 1 - Bao cao nhan su =====
+// ===== TAB 1 - Báo cáo nhân sự =====
 const HRReport = ({ employees, departments }) => {
   const deptCounts = useMemo(() => {
     const map = {};
     employees.forEach((e) => {
-      const name = e.DepartmentName || "Khac";
+      const name = e.DepartmentName || "Khác";
       map[name] = (map[name] || 0) + 1;
     });
     return Object.entries(map).map(([name, count]) => ({ name, count }));
@@ -58,7 +58,7 @@ const HRReport = ({ employees, departments }) => {
   const statusCounts = useMemo(() => {
     const map = {};
     employees.forEach((e) => {
-      const s = e.Status || "Khac";
+      const s = e.Status || "Khác";
       map[s] = (map[s] || 0) + 1;
     });
     return Object.entries(map).map(([name, count]) => ({ name, count }));
@@ -68,7 +68,7 @@ const HRReport = ({ employees, departments }) => {
     const map = {};
     employees.forEach((e) => {
       const g =
-        e.Gender === "Male" ? "Nam" : e.Gender === "Female" ? "Nu" : e.Gender;
+        e.Gender === "Male" ? "Nam" : e.Gender === "Female" ? "Nữ" : e.Gender;
       map[g] = (map[g] || 0) + 1;
     });
     return Object.entries(map).map(([name, count]) => ({ name, count }));
@@ -76,12 +76,12 @@ const HRReport = ({ employees, departments }) => {
 
   const handleExport = () => {
     const headers = [
-      "Ho ten",
+      "Họ tên",
       "Email",
-      "Phong ban",
-      "Chuc vu",
-      "Trang thai",
-      "Ngay vao lam",
+      "Phòng ban",
+      "Chức vụ",
+      "Trạng thái",
+      "Ngày vào làm",
     ];
     const rows = employees.map((e) => [
       e.FullName,
@@ -102,7 +102,7 @@ const HRReport = ({ employees, departments }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuat CSV
+          Xuất CSV
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -110,15 +110,15 @@ const HRReport = ({ employees, departments }) => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                So luong nhan vien theo phong ban
+                Số lượng nhân viên theo phòng ban
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Phong ban</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Phòng ban</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        So luong
+                        Số lượng
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -139,13 +139,13 @@ const HRReport = ({ employees, departments }) => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Trang thai
+                Trạng thái
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Trang thai</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
                         SL
                       </TableCell>
@@ -168,13 +168,13 @@ const HRReport = ({ employees, departments }) => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Gioi tinh
+                Giới tính
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Gioi tinh</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Giới tính</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
                         SL
                       </TableCell>
@@ -198,7 +198,7 @@ const HRReport = ({ employees, departments }) => {
   );
 };
 
-// ===== TAB 2 - Bao cao luong =====
+// ===== TAB 2 - Báo cáo lương =====
 const PayrollReport = ({ salaries, employees }) => {
   const summary = useMemo(() => {
     const nets = salaries.map((s) => s.NetSalary || 0);
@@ -231,12 +231,12 @@ const PayrollReport = ({ salaries, employees }) => {
 
   const handleExport = () => {
     const headers = [
-      "Ten nhan vien",
-      "Luong co ban",
-      "Thuong",
-      "Khau tru",
-      "Thuc nhan",
-      "Thang",
+      "Tên nhân viên",
+      "Lương cơ bản",
+      "Thưởng",
+      "Khấu trừ",
+      "Thực nhận",
+      "Tháng",
     ];
     const rows = salaries.map((s) => [
       s.EmployeeName,
@@ -250,10 +250,10 @@ const PayrollReport = ({ salaries, employees }) => {
   };
 
   const summaryCards = [
-    { label: "Tong quy luong", value: summary.totalPayroll, color: "#1565c0" },
-    { label: "Luong trung binh", value: summary.avgSalary, color: "#7b1fa2" },
-    { label: "Luong cao nhat", value: summary.maxSalary, color: "#2e7d32" },
-    { label: "Luong thap nhat", value: summary.minSalary, color: "#ed6c02" },
+    { label: "Tổng quỹ lương", value: summary.totalPayroll, color: "#1565c0" },
+    { label: "Lương trung bình", value: summary.avgSalary, color: "#7b1fa2" },
+    { label: "Lương cao nhất", value: summary.maxSalary, color: "#2e7d32" },
+    { label: "Lương thấp nhất", value: summary.minSalary, color: "#ed6c02" },
   ];
 
   return (
@@ -264,7 +264,7 @@ const PayrollReport = ({ salaries, employees }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuat CSV
+          Xuất CSV
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -289,18 +289,18 @@ const PayrollReport = ({ salaries, employees }) => {
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Tong hop luong theo thang
+            Tổng hợp lương theo tháng
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Thang</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Tháng</TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    Tong luong
+                    Tổng lương
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    Luong trung binh
+                    Lương trung bình
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -325,7 +325,7 @@ const PayrollReport = ({ salaries, employees }) => {
   );
 };
 
-// ===== TAB 3 - Bao cao cham cong =====
+// ===== TAB 3 - Báo cáo chấm công =====
 const AttendanceReport = ({ attendance }) => {
   const totalWorkDays = attendance.reduce((s, a) => s + (a.WorkDays || 0), 0);
   const totalLeaveDays = attendance.reduce((s, a) => s + (a.LeaveDays || 0), 0);
@@ -354,11 +354,11 @@ const AttendanceReport = ({ attendance }) => {
 
   const handleExport = () => {
     const headers = [
-      "Ten nhan vien",
-      "Ngay lam viec",
-      "Ngay nghi phep",
-      "Ngay vang mat",
-      "Thang",
+      "Tên nhân viên",
+      "Ngày làm việc",
+      "Ngày nghỉ phép",
+      "Ngày vắng mặt",
+      "Tháng",
     ];
     const rows = attendance.map((a) => [
       a.EmployeeName,
@@ -371,9 +371,9 @@ const AttendanceReport = ({ attendance }) => {
   };
 
   const summaryCards = [
-    { label: "Tong ngay lam viec", value: totalWorkDays, color: "#2e7d32" },
-    { label: "Tong ngay nghi phep", value: totalLeaveDays, color: "#ed6c02" },
-    { label: "Tong ngay vang mat", value: totalAbsentDays, color: "#d32f2f" },
+    { label: "Tổng ngày làm việc", value: totalWorkDays, color: "#2e7d32" },
+    { label: "Tổng ngày nghỉ phép", value: totalLeaveDays, color: "#ed6c02" },
+    { label: "Tổng ngày vắng mặt", value: totalAbsentDays, color: "#d32f2f" },
   ];
 
   return (
@@ -384,7 +384,7 @@ const AttendanceReport = ({ attendance }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuat CSV
+          Xuất CSV
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -409,21 +409,21 @@ const AttendanceReport = ({ attendance }) => {
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Cham cong theo nhan vien
+            Chấm công theo nhân viên
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Ten nhan vien</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    Ngay lam
+                    Ngày làm
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    Ngay nghi
+                    Ngày nghỉ
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    Ngay vang
+                    Ngày vắng
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -453,7 +453,7 @@ const AttendanceReport = ({ attendance }) => {
   );
 };
 
-// ===== TAB 4 - Bao cao co tuc =====
+// ===== TAB 4 - Báo cáo cổ tức =====
 const DividendReport = ({ dividends }) => {
   const totalDividends = dividends.reduce(
     (s, d) => s + (d.DividendAmount || d.Amount || 0),
@@ -463,7 +463,7 @@ const DividendReport = ({ dividends }) => {
     dividends.length > 0 ? Math.round(totalDividends / dividends.length) : 0;
 
   const handleExport = () => {
-    const headers = ["Ten nhan vien", "So tien co tuc", "Ngay"];
+    const headers = ["Tên nhân viên", "Số tiền cổ tức", "Ngày"];
     const rows = dividends.map((d) => [
       d.EmployeeName,
       d.DividendAmount || d.Amount,
@@ -474,13 +474,13 @@ const DividendReport = ({ dividends }) => {
 
   const summaryCards = [
     {
-      label: "Tong co tuc",
+      label: "Tổng cổ tức",
       value: formatCurrency(totalDividends),
       color: "#1565c0",
     },
-    { label: "So nguoi nhan", value: dividends.length, color: "#7b1fa2" },
+    { label: "Số người nhận", value: dividends.length, color: "#7b1fa2" },
     {
-      label: "Co tuc trung binh",
+      label: "Cổ tức trung bình",
       value: formatCurrency(avg),
       color: "#2e7d32",
     },
@@ -494,7 +494,7 @@ const DividendReport = ({ dividends }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuat CSV
+          Xuất CSV
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -519,18 +519,18 @@ const DividendReport = ({ dividends }) => {
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Chi tiet co tuc
+            Chi tiết cổ tức
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Ten nhan vien</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    So tien
+                    Số tiền
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }} align="right">
-                    Ngay
+                    Ngày
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -582,7 +582,7 @@ const ReportsPage = () => {
         setAttendance(attRes.data);
         setDividends(divRes.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu bao cao:", error);
+        console.error("Lỗi khi tải dữ liệu báo cáo:", error);
       } finally {
         setLoading(false);
       }
@@ -601,7 +601,7 @@ const ReportsPage = () => {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -609,7 +609,7 @@ const ReportsPage = () => {
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Bao cao & Phan tich
+        Báo cáo & Phân tích
       </Typography>
 
       <Paper elevation={2} sx={{ mb: 3 }}>
@@ -620,10 +620,10 @@ const ReportsPage = () => {
           scrollButtons="auto"
           sx={{ "& .MuiTab-root": { fontWeight: 600, textTransform: "none" } }}
         >
-          <Tab label="Bao cao nhan su" />
-          <Tab label="Bao cao luong" />
-          <Tab label="Bao cao cham cong" />
-          <Tab label="Bao cao co tuc" />
+          <Tab label="Báo cáo nhân sự" />
+          <Tab label="Báo cáo lương" />
+          <Tab label="Báo cáo chấm công" />
+          <Tab label="Báo cáo cổ tức" />
         </Tabs>
       </Paper>
 

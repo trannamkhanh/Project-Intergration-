@@ -58,13 +58,13 @@ const initialFormState = {
 };
 
 const STATUS_CONFIG = {
-  "\u0110ang l\u00e0m vi\u1ec7c": { label: "Dang lam viec", color: "success" },
-  Active: { label: "Dang lam viec", color: "success" },
-  "Ngh\u1ec9 ph\u00e9p": { label: "Nghi phep", color: "warning" },
-  "Th\u1eed vi\u1ec7c": { label: "Thu viec", color: "info" },
-  "Th\u1ef1c t\u1eadp": { label: "Thuc tap", color: "secondary" },
-  Inactive: { label: "Da nghi viec", color: "error" },
-  "Ngh\u1ec9 vi\u1ec7c": { label: "Da nghi viec", color: "error" },
+  "\u0110ang l\u00e0m vi\u1ec7c": { label: "Đang làm việc", color: "success" },
+  Active: { label: "Đang làm việc", color: "success" },
+  "Ngh\u1ec9 ph\u00e9p": { label: "Nghỉ phép", color: "warning" },
+  "Th\u1eed vi\u1ec7c": { label: "Thử việc", color: "info" },
+  "Th\u1ef1c t\u1eadp": { label: "Thực tập", color: "secondary" },
+  Inactive: { label: "Đã nghỉ việc", color: "error" },
+  "Ngh\u1ec9 vi\u1ec7c": { label: "Đã nghỉ việc", color: "error" },
 };
 
 function getStatusConfig(status) {
@@ -124,7 +124,7 @@ export default function EmployeesPage() {
         setSalaries(salRes.data);
         setAttendance(attRes.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu:", error);
+        console.error("Lỗi khi tải dữ liệu:", error);
       } finally {
         setLoading(false);
       }
@@ -149,7 +149,7 @@ export default function EmployeesPage() {
     return filteredEmployees.slice(start, start + rowsPerPage);
   }, [filteredEmployees, page, rowsPerPage]);
 
-  // Xem chi tiet nhan vien
+  // Xem chi tiết nhan vien
   const handleOpenDetail = (employee) => {
     setDetailEmployee(employee);
     setOpenDetailDialog(true);
@@ -176,8 +176,8 @@ export default function EmployeesPage() {
     const hasAttendance = attendance.some(
       (a) => a.EmployeeID === employee.EmployeeID,
     );
-    if (hasSalary) constraints.push("Co ban ghi luong lien quan");
-    if (hasAttendance) constraints.push("Co ban ghi cham cong lien quan");
+    if (hasSalary) constraints.push("Có bản ghi lương liên quan");
+    if (hasAttendance) constraints.push("Có bản ghi chấm công liên quan");
     return constraints;
   };
 
@@ -243,8 +243,8 @@ export default function EmployeesPage() {
       }
       handleCloseDialog();
     } catch (error) {
-      console.error("Loi khi luu nhan vien:", error);
-      alert(error.response?.data?.error || "Co loi xay ra khi luu nhan vien");
+      console.error("Lỗi khi lưu nhân viên:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi lưu nhân viên");
     }
   };
 
@@ -269,8 +269,8 @@ export default function EmployeesPage() {
       );
       handleCloseDelete();
     } catch (error) {
-      console.error("Loi khi xoa nhan vien:", error);
-      alert(error.response?.data?.error || "Co loi xay ra khi xoa nhan vien");
+      console.error("Lỗi khi xóa nhân viên:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi xóa nhân viên");
     }
   };
 
@@ -287,7 +287,7 @@ export default function EmployeesPage() {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -295,37 +295,37 @@ export default function EmployeesPage() {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4">Nhan vien</Typography>
+        <Typography variant="h4">Nhân viên</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd}>
-          Them nhan vien
+          Thêm nhân viên
         </Button>
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <TextField fullWidth size="small" placeholder="Tim kiem theo ten..." value={searchQuery} onChange={handleSearchChange}
+            <TextField fullWidth size="small" placeholder="Tìm kiếm theo tên..." value={searchQuery} onChange={handleSearchChange}
               InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>) }}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 3, md: 3 }}>
             <FormControl fullWidth size="small">
-              <InputLabel><Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}><FilterListIcon fontSize="small" />Phong ban</Box></InputLabel>
-              <Select value={filterDepartment} onChange={handleFilterDepartmentChange} label="xx Phong ban xx">
-                <MenuItem value=""><em>Tat ca phong ban</em></MenuItem>
+              <InputLabel><Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}><FilterListIcon fontSize="small" />Phòng ban</Box></InputLabel>
+              <Select value={filterDepartment} onChange={handleFilterDepartmentChange} label="xx Phòng ban xx">
+                <MenuItem value=""><em>Tất cả phòng ban</em></MenuItem>
                 {departments.map((dept) => (<MenuItem key={dept.DepartmentID} value={dept.DepartmentID}>{dept.DepartmentName}</MenuItem>))}
               </Select>
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12, sm: 3, md: 3 }}>
             <FormControl fullWidth size="small">
-              <InputLabel><Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}><FilterListIcon fontSize="small" />Trang thai</Box></InputLabel>
-              <Select value={filterStatus} onChange={handleFilterStatusChange} label="xx Trang thai x">
-                <MenuItem value=""><em>Tat ca trang thai</em></MenuItem>
-                <MenuItem value={"\u0110ang l\u00e0m vi\u1ec7c"}>Dang lam viec</MenuItem>
-                <MenuItem value={"Ngh\u1ec9 ph\u00e9p"}>Nghi phep</MenuItem>
-                <MenuItem value={"Th\u1eed vi\u1ec7c"}>Thu viec</MenuItem>
-                <MenuItem value={"Th\u1ef1c t\u1eadp"}>Thuc tap</MenuItem>
+              <InputLabel><Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}><FilterListIcon fontSize="small" />Trạng thái</Box></InputLabel>
+              <Select value={filterStatus} onChange={handleFilterStatusChange} label="xx Trạng thái x">
+                <MenuItem value=""><em>Tất cả trạng thái</em></MenuItem>
+                <MenuItem value={"\u0110ang l\u00e0m vi\u1ec7c"}>Đang làm việc</MenuItem>
+                <MenuItem value={"Ngh\u1ec9 ph\u00e9p"}>Nghỉ phép</MenuItem>
+                <MenuItem value={"Th\u1eed vi\u1ec7c"}>Thử việc</MenuItem>
+                <MenuItem value={"Th\u1ef1c t\u1eadp"}>Thực tập</MenuItem>
                 <MenuItem value="Active">Active</MenuItem>
               </Select>
             </FormControl>
@@ -338,14 +338,14 @@ export default function EmployeesPage() {
           <TableHead>
             <TableRow>
               <TableCell>ID</TableCell>
-              <TableCell>Ho ten</TableCell>
+              <TableCell>Họ tên</TableCell>
               <TableCell>Email</TableCell>
-              <TableCell>So dien thoai</TableCell>
-              <TableCell>Phong ban</TableCell>
-              <TableCell>Chuc vu</TableCell>
-              <TableCell>Trang thai</TableCell>
-              <TableCell>Ngay vao lam</TableCell>
-              <TableCell align="center">Thao tac</TableCell>
+              <TableCell>Số điện thoại</TableCell>
+              <TableCell>Phòng ban</TableCell>
+              <TableCell>Chức vụ</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell>Ngày vào làm</TableCell>
+              <TableCell align="center">Thao tác</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -363,13 +363,13 @@ export default function EmployeesPage() {
                   </TableCell>
                   <TableCell>{formatDate(emp.HireDate)}</TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Xem chi tiet">
+                    <Tooltip title="Xem chi tiết">
                       <IconButton size="small" color="info" onClick={() => handleOpenDetail(emp)}><ViewIcon fontSize="small" /></IconButton>
                     </Tooltip>
-                    <Tooltip title="Sua">
+                    <Tooltip title="Sửa">
                       <IconButton size="small" color="primary" onClick={() => handleOpenEdit(emp)}><EditIcon fontSize="small" /></IconButton>
                     </Tooltip>
-                    <Tooltip title="Xoa">
+                    <Tooltip title="Xóa">
                       <IconButton size="small" color="error" onClick={() => handleOpenDelete(emp)}><DeleteIcon fontSize="small" /></IconButton>
                     </Tooltip>
                   </TableCell>
@@ -378,7 +378,7 @@ export default function EmployeesPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">Khong tim thay nhan vien nao.</Typography>
+                  <Typography color="text.secondary">Không tìm thấy nhân viên nào.</Typography>
                 </TableCell>
               </TableRow>
             )}
@@ -387,18 +387,18 @@ export default function EmployeesPage() {
         <TablePagination component="div" count={filteredEmployees.length} page={page}
           onPageChange={(_e, p) => setPage(p)} rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          rowsPerPageOptions={[5, 10, 25]} labelRowsPerPage="So dong moi trang:" />
+          rowsPerPageOptions={[5, 10, 25]} labelRowsPerPage="Số dòng mỗi trang:" />
       </TableContainer>
 
       {/* Dialog xem chi tiet nhan vien */}
       <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="md" fullWidth>
         {detailEmployee && (
           <>
-            <DialogTitle sx={{ fontWeight: 700 }}>Chi tiet nhan vien - {detailEmployee.FullName}</DialogTitle>
+            <DialogTitle sx={{ fontWeight: 700 }}>Chi tiết nhân viên - {detailEmployee.FullName}</DialogTitle>
             <DialogContent dividers>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Ho ten</Typography>
+                  <Typography variant="body2" color="text.secondary">Họ tên</Typography>
                   <Typography fontWeight={600}>{detailEmployee.FullName}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
@@ -406,47 +406,47 @@ export default function EmployeesPage() {
                   <Typography>{detailEmployee.Email}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">So dien thoai</Typography>
-                  <Typography>{detailEmployee.PhoneNumber || "Chua cap nhat"}</Typography>
+                  <Typography variant="body2" color="text.secondary">Số điện thoại</Typography>
+                  <Typography>{detailEmployee.PhoneNumber || "Chưa cập nhật"}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Ngay sinh</Typography>
+                  <Typography variant="body2" color="text.secondary">Ngày sinh</Typography>
                   <Typography>{formatDate(detailEmployee.DateOfBirth)}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Gioi tinh</Typography>
+                  <Typography variant="body2" color="text.secondary">Giới tính</Typography>
                   <Typography>{detailEmployee.Gender === "Male" ? "Nam" : detailEmployee.Gender === "Female" ? "Nu" : detailEmployee.Gender}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Trang thai</Typography>
+                  <Typography variant="body2" color="text.secondary">Trạng thái</Typography>
                   <Chip label={getStatusConfig(detailEmployee.Status).label} size="small" color={getStatusConfig(detailEmployee.Status).color} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Phong ban</Typography>
+                  <Typography variant="body2" color="text.secondary">Phòng ban</Typography>
                   <Typography>{detailEmployee.DepartmentName}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Chuc vu</Typography>
+                  <Typography variant="body2" color="text.secondary">Chức vụ</Typography>
                   <Typography>{detailEmployee.PositionName}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Typography variant="body2" color="text.secondary">Ngay vao lam</Typography>
+                  <Typography variant="body2" color="text.secondary">Ngày vào làm</Typography>
                   <Typography>{formatDate(detailEmployee.HireDate)}</Typography>
                 </Grid>
               </Grid>
 
               <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>Lich su luong</Typography>
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>Lịch sử lương</Typography>
               {empSalaryHistory.length > 0 ? (
                 <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Thang</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Luong co ban</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Thuong</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Khau tru</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="right">Thuc nhan</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Lương cơ bản</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Thưởng</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Khấu trừ</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="right">Thực nhận</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -462,18 +462,18 @@ export default function EmployeesPage() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              ) : (<Typography color="text.secondary" sx={{ mb: 3 }}>Chua co du lieu luong</Typography>)}
+              ) : (<Typography color="text.secondary" sx={{ mb: 3 }}>Chưa có dữ liệu lương</Typography>)}
 
-              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>Lich su cham cong</Typography>
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>Lịch sử chấm công</Typography>
               {empAttendanceHistory.length > 0 ? (
                 <TableContainer component={Paper} variant="outlined">
                   <Table size="small">
                     <TableHead>
                       <TableRow>
                         <TableCell sx={{ fontWeight: 700 }}>Thang</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="center">Ngay lam</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="center">Ngay nghi phep</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }} align="center">Ngay vang</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="center">Ngày làm</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="center">Ngày nghỉ phép</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }} align="center">Ngày vắng</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -490,10 +490,10 @@ export default function EmployeesPage() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              ) : (<Typography color="text.secondary">Chua co du lieu cham cong</Typography>)}
+              ) : (<Typography color="text.secondary">Chưa có dữ liệu chấm công</Typography>)}
             </DialogContent>
             <DialogActions sx={{ px: 3, py: 2 }}>
-              <Button variant="contained" onClick={() => setOpenDetailDialog(false)}>Dong</Button>
+              <Button variant="contained" onClick={() => setOpenDetailDialog(false)}>Đóng</Button>
             </DialogActions>
           </>
         )}
@@ -501,25 +501,25 @@ export default function EmployeesPage() {
 
       {/* Dialog them/sua nhan vien */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{dialogMode === "add" ? "Them nhan vien moi" : "Sua thong tin nhan vien"}</DialogTitle>
+        <DialogTitle>{dialogMode === "add" ? "Thêm nhân viên mới" : "Sửa thông tin nhân viên"}</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid size={{ xs: 12 }}>
-              <TextField label="Ho ten" fullWidth size="small" required value={formData.FullName} onChange={handleFormChange("FullName")} />
+              <TextField label="Họ tên" fullWidth size="small" required value={formData.FullName} onChange={handleFormChange("FullName")} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Email" fullWidth size="small" required type="email" value={formData.Email} onChange={handleFormChange("Email")} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="So dien thoai" fullWidth size="small" value={formData.PhoneNumber} onChange={handleFormChange("PhoneNumber")} />
+              <TextField label="Số điện thoại" fullWidth size="small" value={formData.PhoneNumber} onChange={handleFormChange("PhoneNumber")} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Ngay sinh" fullWidth size="small" type="date" value={formData.DateOfBirth} onChange={handleFormChange("DateOfBirth")} InputLabelProps={{ shrink: true }} />
+              <TextField label="Ngày sinh" fullWidth size="small" type="date" value={formData.DateOfBirth} onChange={handleFormChange("DateOfBirth")} InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth size="small" required>
-                <InputLabel>Gioi tinh</InputLabel>
-                <Select value={formData.Gender} onChange={handleFormChange("Gender")} label="Gioi tinh">
+                <InputLabel>Giới tính</InputLabel>
+                <Select value={formData.Gender} onChange={handleFormChange("Gender")} label="Giới tính">
                   <MenuItem value="Male">Nam</MenuItem>
                   <MenuItem value="Female">Nu</MenuItem>
                 </Select>
@@ -527,70 +527,70 @@ export default function EmployeesPage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth size="small" required>
-                <InputLabel>Phong ban</InputLabel>
-                <Select value={formData.DepartmentID} onChange={handleFormChange("DepartmentID")} label="Phong ban">
+                <InputLabel>Phòng ban</InputLabel>
+                <Select value={formData.DepartmentID} onChange={handleFormChange("DepartmentID")} label="Phòng ban">
                   {departments.map((dept) => (<MenuItem key={dept.DepartmentID} value={dept.DepartmentID}>{dept.DepartmentName}</MenuItem>))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth size="small" required>
-                <InputLabel>Chuc vu</InputLabel>
-                <Select value={formData.PositionID} onChange={handleFormChange("PositionID")} label="Chuc vu">
+                <InputLabel>Chức vụ</InputLabel>
+                <Select value={formData.PositionID} onChange={handleFormChange("PositionID")} label="Chức vụ">
                   {positions.map((pos) => (<MenuItem key={pos.PositionID} value={pos.PositionID}>{pos.PositionName}</MenuItem>))}
                 </Select>
               </FormControl>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Ngay vao lam" fullWidth size="small" required type="date" value={formData.HireDate} onChange={handleFormChange("HireDate")} InputLabelProps={{ shrink: true }} />
+              <TextField label="Ngày vào làm" fullWidth size="small" required type="date" value={formData.HireDate} onChange={handleFormChange("HireDate")} InputLabelProps={{ shrink: true }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth size="small" required>
-                <InputLabel>Trang thai</InputLabel>
-                <Select value={formData.Status} onChange={handleFormChange("Status")} label="Trang thai">
-                  <MenuItem value={"\u0110ang l\u00e0m vi\u1ec7c"}>Dang lam viec</MenuItem>
-                  <MenuItem value={"Ngh\u1ec9 ph\u00e9p"}>Nghi phep</MenuItem>
-                  <MenuItem value={"Th\u1eed vi\u1ec7c"}>Thu viec</MenuItem>
-                  <MenuItem value={"Th\u1ef1c t\u1eadp"}>Thuc tap</MenuItem>
+                <InputLabel>Trạng thái</InputLabel>
+                <Select value={formData.Status} onChange={handleFormChange("Status")} label="Trạng thái">
+                  <MenuItem value={"\u0110ang l\u00e0m vi\u1ec7c"}>Đang làm việc</MenuItem>
+                  <MenuItem value={"Ngh\u1ec9 ph\u00e9p"}>Nghỉ phép</MenuItem>
+                  <MenuItem value={"Th\u1eed vi\u1ec7c"}>Thử việc</MenuItem>
+                  <MenuItem value={"Th\u1ef1c t\u1eadp"}>Thực tập</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={handleCloseDialog} color="inherit">Huy</Button>
+          <Button onClick={handleCloseDialog} color="inherit">Hủy</Button>
           <Button variant="contained" onClick={handleSave} disabled={!isFormValid}>
-            {dialogMode === "add" ? "Them" : "Luu thay doi"}
+            {dialogMode === "add" ? "Thêm" : "Lưu thay đổi"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog xoa (kiem tra rang buoc) */}
       <Dialog open={openDeleteDialog} onClose={handleCloseDelete} maxWidth="xs" fullWidth>
-        <DialogTitle>Xac nhan xoa</DialogTitle>
+        <DialogTitle>Xác nhận xóa</DialogTitle>
         <DialogContent>
           {deleteConstraints.length > 0 ? (
             <Alert severity="warning" sx={{ mb: 1 }}>
               <Typography fontWeight={600} sx={{ mb: 1 }}>
-                Khong the xoa nhan vien {employeeToDelete?.FullName} vi:
+                Không thể xóa nhân viên {employeeToDelete?.FullName} vi:
               </Typography>
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 {deleteConstraints.map((c, i) => (<li key={i}>{c}</li>))}
               </ul>
               <Typography variant="body2" sx={{ mt: 1 }}>
-                Vui long xoa cac ban ghi lien quan truoc khi xoa nhan vien nay.
+                Vui lòng xóa các bản ghi liên quan trước khi xóa nhân viên này.
               </Typography>
             </Alert>
           ) : (
             <Typography>
-              Ban co chac chan muon xoa nhan vien <strong>{employeeToDelete?.FullName}</strong>? Hanh dong nay khong the hoan tac.
+              Bạn có chắc chắn muốn xóa nhân viên <strong>{employeeToDelete?.FullName}</strong>? Hành động này không thể hoàn tác.
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={handleCloseDelete} color="inherit">Huy</Button>
+          <Button onClick={handleCloseDelete} color="inherit">Hủy</Button>
           {deleteConstraints.length === 0 && (
-            <Button variant="contained" color="error" onClick={handleConfirmDelete}>Xoa</Button>
+            <Button variant="contained" color="error" onClick={handleConfirmDelete}>Xóa</Button>
           )}
         </DialogActions>
       </Dialog>
