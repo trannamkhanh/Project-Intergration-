@@ -22,6 +22,13 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function RoleRoute({ children, role }) {
+  const { isAuthenticated, hasRole } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!hasRole(role)) return <Navigate to="/" replace />;
+  return children;
+}
+
 function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
   if (isAuthenticated) return <Navigate to="/" replace />;
@@ -58,10 +65,10 @@ function App() {
                 <Route path="/employees" element={<EmployeesPage />} />
                 <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/positions" element={<PositionsPage />} />
-                <Route path="/payroll" element={<PayrollPage />} />
+                <Route path="/payroll" element={<RoleRoute role="Admin"><PayrollPage /></RoleRoute>} />
                 <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/dividends" element={<DividendsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/dividends" element={<RoleRoute role="Admin"><DividendsPage /></RoleRoute>} />
+                <Route path="/reports" element={<RoleRoute role="Admin"><ReportsPage /></RoleRoute>} />
                 <Route path="/alerts" element={<AlertsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

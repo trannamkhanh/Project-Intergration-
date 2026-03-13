@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -9,8 +9,7 @@ import {
   IconButton,
   Badge,
   Tooltip,
-  Divider,
-  Alert as MuiAlert,
+  CircularProgress,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -24,7 +23,11 @@ import {
   Warning,
   CheckCircle,
 } from "@mui/icons-material";
-import { mockAlerts } from "../../services/mockData";
+import {
+  employeeService,
+  payrollService,
+  attendanceService,
+} from "../../services/api";
 
 const severityColorMap = {
   info: "#1565c0",
@@ -45,77 +48,198 @@ const typeIconMap = {
 };
 
 const typeLabelMap = {
-  anniversary: "Anniversary",
-  leave: "Leave",
-  salary: "Salary",
+  anniversary: "Ky niem",
+  leave: "Nghi phep",
+  salary: "Luong",
 };
 
-const filterOptions = ["All", "Anniversary", "Leave", "Salary"];
+const filterOptions = ["Tat ca", "Ky niem", "Nghi phep", "Luong"];
+const filterMap = {
+  "Tat ca": "all",
+  "Ky niem": "anniversary",
+  "Nghi phep": "leave",
+  Luong: "salary",
+};
 
-function formatDate(dateStr) {
+function formatDateVN(dateStr) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
 
-export default function AlertsPage() {
-  const [alerts, setAlerts] = useState(mockAlerts);
-  const [activeFilter, setActiveFilter] = useState("All");
+function generateAlerts(employees, salaries, attendance) {
+  const alerts = [];
+  let id = 1;
+  const today = new Date();
 
-  // --- Derived data ---
+  // Canh bao ky niem ngay vao lam
+  employees.forEach((emp) => {
+    if (!emp.HireDate) return;
+    const hireDate = new Date(emp.HireDate);
+    const years = today.getFullYear() - hireDate.getFullYear();
+    if (years > 0 && years % 5 === 0) {
+      const anniversaryThisYear = new Date(
+        today.getFullYear(),
+        hireDate.getMonth(),
+        hireDate.getDate(),
+      );
+      const diffDays = Math.ceil(
+        (anniversaryThisYear - today) / (1000 * 60 * 60 * 24),
+      );
+      if (diffDays >= -30 && diffDays <= 60) {
+        alerts.push({
+          id: id++,
+          type: "anniversary",
+          title: "Ky niem ngay lam viec",
+          message: `${emp.FullName} se ky niem ${years} nam lam viec`,
+          severity: "info",
+          read: diffDays < 0,
+          date: anniversaryThisYear.toISOString().split("T")[0],
+        });
+      }
+    }
+  });
+
+  // Canh bao nghi phep qua han
+  attendance.forEach((record) => {
+    if (record.LeaveDays > 3 || record.AbsentDays > 1) {
+      alerts.push({
+        id: id++,
+        type: "leave",
+        title: record.AbsentDays > 1 ? "Vang mat nhieu" : "Nghi phep nhieu",
+        message: `${record.EmployeeName} co ${record.LeaveDays} ngay nghi phep va ${record.AbsentDays} ngay vang mat trong thang ${record.Month}`,
+        severity: record.AbsentDays > 2 ? "error" : "warning",
+        read: false,
+        date: today.toISOString().split("T")[0],
+      });
+    }
+  });
+
+  // Canh bao chenh lech luong
+  const salaryByEmployee = {};
+  salaries.forEach((s) => {
+    if (!salaryByEmployee[s.EmployeeID]) salaryByEmployee[s.EmployeeID] = [];
+    salaryByEmployee[s.EmployeeID].push(s);
+  });
+
+  Object.values(salaryByEmployee).forEach((records) => {
+    if (records.length < 2) return;
+    records.sort((a, b) =>
+      (a.SalaryMonth || "").localeCompare(b.SalaryMonth || ""),
+    );
+    const prev = records[records.length - 2];
+    const curr = records[records.length - 1];
+    if (prev.NetSalary && curr.NetSalary) {
+      const diff = ((curr.NetSalary - prev.NetSalary) / prev.NetSalary) * 100;
+      if (Math.abs(diff) > 10) {
+        alerts.push({
+          id: id++,
+          type: "salary",
+          title: "Chenh lech luong",
+          message: `${curr.EmployeeName}: luong thay doi ${diff > 0 ? "+" : ""}${diff.toFixed(1)}% tu ${prev.SalaryMonth} sang ${curr.SalaryMonth}`,
+          severity: "error",
+          read: false,
+          date: today.toISOString().split("T")[0],
+        });
+      }
+    }
+  });
+
+  return alerts;
+}
+
+export default function AlertsPage() {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState("Tat ca");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [empRes, salRes, attRes] = await Promise.all([
+          employeeService.getAll(),
+          payrollService.getAll(),
+          attendanceService.getAll(),
+        ]);
+        const generated = generateAlerts(empRes.data, salRes.data, attRes.data);
+        setAlerts(generated);
+      } catch (error) {
+        console.error("Loi khi tai du lieu canh bao:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const filteredAlerts = useMemo(() => {
-    if (activeFilter === "All") return alerts;
-    return alerts.filter((alert) => alert.type === activeFilter.toLowerCase());
+    const type = filterMap[activeFilter];
+    if (type === "all") return alerts;
+    return alerts.filter((alert) => alert.type === type);
   }, [alerts, activeFilter]);
 
   const totalCount = alerts.length;
   const unreadCount = alerts.filter((a) => !a.read).length;
   const criticalCount = alerts.filter((a) => a.severity === "error").length;
 
-  // --- Handlers ---
   const handleMarkAsRead = (id) => {
     setAlerts((prev) =>
-      prev.map((alert) => (alert.id === id ? { ...alert, read: true } : alert)),
+      prev.map((a) => (a.id === id ? { ...a, read: true } : a)),
     );
   };
 
   const handleMarkAllRead = () => {
-    setAlerts((prev) => prev.map((alert) => ({ ...alert, read: true })));
+    setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
   };
 
   const handleDelete = (id) => {
-    setAlerts((prev) => prev.filter((alert) => alert.id !== id));
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
   };
 
-  // --- Summary cards config ---
   const summaryCards = [
     {
-      title: "Total Alerts",
+      title: "Tong canh bao",
       value: totalCount,
       icon: <Notifications sx={{ fontSize: 36 }} />,
       color: "#1565c0",
     },
     {
-      title: "Unread",
+      title: "Chua doc",
       value: unreadCount,
       icon: <NotificationsActive sx={{ fontSize: 36 }} />,
       color: "#ed6c02",
     },
     {
-      title: "Critical",
+      title: "Nghiem trong",
       value: criticalCount,
       icon: <Warning sx={{ fontSize: 36 }} />,
       color: "#d32f2f",
     },
   ];
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      {/* ---- Header ---- */}
       <Box
         sx={{
           display: "flex",
@@ -124,18 +248,17 @@ export default function AlertsPage() {
           mb: 3,
         }}
       >
-        <Typography variant="h4">Alerts & Notifications</Typography>
+        <Typography variant="h4">Canh bao & Thong bao</Typography>
         <Button
           variant="contained"
           startIcon={<MarkEmailRead />}
           onClick={handleMarkAllRead}
           disabled={unreadCount === 0}
         >
-          Mark All Read
+          Danh dau tat ca da doc
         </Button>
       </Box>
 
-      {/* ---- Filter Chips ---- */}
       <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
         {filterOptions.map((filter) => (
           <Chip
@@ -149,16 +272,12 @@ export default function AlertsPage() {
         ))}
       </Box>
 
-      {/* ---- Summary Cards ---- */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
           <Grid key={card.title} size={{ xs: 12, sm: 4 }}>
             <Card
               elevation={3}
-              sx={{
-                borderRadius: 2,
-                borderTop: `4px solid ${card.color}`,
-              }}
+              sx={{ borderRadius: 2, borderTop: `4px solid ${card.color}` }}
             >
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -194,7 +313,6 @@ export default function AlertsPage() {
         ))}
       </Grid>
 
-      {/* ---- Alerts List ---- */}
       {filteredAlerts.length === 0 ? (
         <Card elevation={3} sx={{ borderRadius: 2 }}>
           <CardContent
@@ -207,12 +325,12 @@ export default function AlertsPage() {
           >
             <CheckCircle sx={{ fontSize: 64, color: "success.main", mb: 2 }} />
             <Typography variant="h6" sx={{ color: "text.secondary" }}>
-              No alerts to display
+              Khong co canh bao nao
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {activeFilter !== "All"
-                ? `There are no ${activeFilter.toLowerCase()} alerts at this time.`
-                : "All caught up! There are no alerts at this time."}
+              {activeFilter !== "Tat ca"
+                ? `Khong co canh bao loai "${activeFilter}" vao luc nay.`
+                : "Khong co canh bao nao vao luc nay."}
             </Typography>
           </CardContent>
         </Card>
@@ -221,7 +339,6 @@ export default function AlertsPage() {
           {filteredAlerts.map((alert) => {
             const severityColor = severityColorMap[alert.severity];
             const severityBg = severityBgMap[alert.severity];
-
             return (
               <Card
                 key={alert.id}
@@ -232,7 +349,6 @@ export default function AlertsPage() {
                   opacity: alert.read ? 0.85 : 1,
                   transition: "all 0.2s ease-in-out",
                   "&:hover": {
-                    elevation: 4,
                     transform: "translateY(-1px)",
                     boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                   },
@@ -240,13 +356,8 @@ export default function AlertsPage() {
               >
                 <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
                   <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 2,
-                    }}
+                    sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
                   >
-                    {/* Alert Icon */}
                     <Badge
                       variant="dot"
                       invisible={alert.read}
@@ -268,8 +379,6 @@ export default function AlertsPage() {
                         {typeIconMap[alert.type]}
                       </Box>
                     </Badge>
-
-                    {/* Alert Content */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Box
                         sx={{
@@ -281,9 +390,7 @@ export default function AlertsPage() {
                       >
                         <Typography
                           variant="subtitle1"
-                          sx={{
-                            fontWeight: alert.read ? 500 : 700,
-                          }}
+                          sx={{ fontWeight: alert.read ? 500 : 700 }}
                         >
                           {alert.title}
                         </Typography>
@@ -300,7 +407,7 @@ export default function AlertsPage() {
                         />
                         {!alert.read && (
                           <Chip
-                            label="NEW"
+                            label="MOI"
                             size="small"
                             color="error"
                             sx={{
@@ -325,11 +432,9 @@ export default function AlertsPage() {
                         variant="caption"
                         sx={{ color: "text.secondary" }}
                       >
-                        {formatDate(alert.date)}
+                        {formatDateVN(alert.date)}
                       </Typography>
                     </Box>
-
-                    {/* Action Buttons */}
                     <Box
                       sx={{
                         display: "flex",
@@ -339,7 +444,7 @@ export default function AlertsPage() {
                       }}
                     >
                       {!alert.read && (
-                        <Tooltip title="Mark as Read">
+                        <Tooltip title="Danh dau da doc">
                           <IconButton
                             size="small"
                             onClick={() => handleMarkAsRead(alert.id)}
@@ -349,7 +454,7 @@ export default function AlertsPage() {
                           </IconButton>
                         </Tooltip>
                       )}
-                      <Tooltip title="Delete">
+                      <Tooltip title="Xoa">
                         <IconButton
                           size="small"
                           onClick={() => handleDelete(alert.id)}
