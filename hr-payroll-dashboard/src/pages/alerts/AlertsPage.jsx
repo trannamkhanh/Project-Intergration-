@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -23,11 +23,7 @@ import {
   Warning,
   CheckCircle,
 } from "@mui/icons-material";
-import {
-  employeeService,
-  payrollService,
-  attendanceService,
-} from "../../services/api";
+import { useAlerts } from "../../contexts/AlertContext";
 
 const severityColorMap = {
   info: "#1565c0",
@@ -71,111 +67,9 @@ function formatDateVN(dateStr) {
   });
 }
 
-function generateAlerts(employees, salaries, attendance) {
-  const alerts = [];
-  let id = 1;
-  const today = new Date();
-
-  // Cảnh báo kỷ niệm ngày vào làm
-  employees.forEach((emp) => {
-    if (!emp.HireDate) return;
-    const hireDate = new Date(emp.HireDate);
-    const years = today.getFullYear() - hireDate.getFullYear();
-    if (years > 0 && years % 5 === 0) {
-      const anniversaryThisYear = new Date(
-        today.getFullYear(),
-        hireDate.getMonth(),
-        hireDate.getDate(),
-      );
-      const diffDays = Math.ceil(
-        (anniversaryThisYear - today) / (1000 * 60 * 60 * 24),
-      );
-      if (diffDays >= -30 && diffDays <= 60) {
-        alerts.push({
-          id: id++,
-          type: "anniversary",
-          title: "Kỷ niệm ngày làm việc",
-          message: `${emp.FullName} sẽ kỷ niệm ${years} năm làm việc`,
-          severity: "info",
-          read: diffDays < 0,
-          date: anniversaryThisYear.toISOString().split("T")[0],
-        });
-      }
-    }
-  });
-
-  // Cảnh báo nghỉ phép quá hạn
-  attendance.forEach((record) => {
-    if (record.LeaveDays > 3 || record.AbsentDays > 1) {
-      alerts.push({
-        id: id++,
-        type: "leave",
-        title: record.AbsentDays > 1 ? "Vắng mặt nhiều" : "Nghỉ phép nhiều",
-        message: `${record.EmployeeName} có ${record.LeaveDays} ngày nghỉ phép và ${record.AbsentDays} ngày vắng mặt trong tháng ${record.Month}`,
-        severity: record.AbsentDays > 2 ? "error" : "warning",
-        read: false,
-        date: today.toISOString().split("T")[0],
-      });
-    }
-  });
-
-  // Cảnh báo chênh lệch lương
-  const salaryByEmployee = {};
-  salaries.forEach((s) => {
-    if (!salaryByEmployee[s.EmployeeID]) salaryByEmployee[s.EmployeeID] = [];
-    salaryByEmployee[s.EmployeeID].push(s);
-  });
-
-  Object.values(salaryByEmployee).forEach((records) => {
-    if (records.length < 2) return;
-    records.sort((a, b) =>
-      (a.SalaryMonth || "").localeCompare(b.SalaryMonth || ""),
-    );
-    const prev = records[records.length - 2];
-    const curr = records[records.length - 1];
-    if (prev.NetSalary && curr.NetSalary) {
-      const diff = ((curr.NetSalary - prev.NetSalary) / prev.NetSalary) * 100;
-      if (Math.abs(diff) > 10) {
-        alerts.push({
-          id: id++,
-          type: "salary",
-          title: "Chênh lệch lương",
-          message: `${curr.EmployeeName}: lương thay đổi ${diff > 0 ? "+" : ""}${diff.toFixed(1)}% từ ${prev.SalaryMonth} sang ${curr.SalaryMonth}`,
-          severity: "error",
-          read: false,
-          date: today.toISOString().split("T")[0],
-        });
-      }
-    }
-  });
-
-  return alerts;
-}
-
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { alerts, loading, unreadCount, markAsRead, markAllRead, deleteAlert } = useAlerts();
   const [activeFilter, setActiveFilter] = useState("Tất cả");
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [empRes, salRes, attRes] = await Promise.all([
-          employeeService.getAll(),
-          payrollService.getAll(),
-          attendanceService.getAll(),
-        ]);
-        const generated = generateAlerts(empRes.data, salRes.data, attRes.data);
-        setAlerts(generated);
-      } catch (error) {
-        console.error("Lỗi khi tải dữ liệu cảnh báo:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
 
   const filteredAlerts = useMemo(() => {
     const type = filterMap[activeFilter];
@@ -184,22 +78,7 @@ export default function AlertsPage() {
   }, [alerts, activeFilter]);
 
   const totalCount = alerts.length;
-  const unreadCount = alerts.filter((a) => !a.read).length;
   const criticalCount = alerts.filter((a) => a.severity === "error").length;
-
-  const handleMarkAsRead = (id) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, read: true } : a)),
-    );
-  };
-
-  const handleMarkAllRead = () => {
-    setAlerts((prev) => prev.map((a) => ({ ...a, read: true })));
-  };
-
-  const handleDelete = (id) => {
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-  };
 
   const summaryCards = [
     {
@@ -252,7 +131,7 @@ export default function AlertsPage() {
         <Button
           variant="contained"
           startIcon={<MarkEmailRead />}
-          onClick={handleMarkAllRead}
+          onClick={markAllRead}
           disabled={unreadCount === 0}
         >
           Đánh dấu tất cả đã đọc
@@ -447,7 +326,7 @@ export default function AlertsPage() {
                         <Tooltip title="Đánh dấu đã đọc">
                           <IconButton
                             size="small"
-                            onClick={() => handleMarkAsRead(alert.id)}
+                            onClick={() => markAsRead(alert.id)}
                             sx={{ color: severityColor }}
                           >
                             <MarkEmailRead fontSize="small" />
@@ -457,7 +336,7 @@ export default function AlertsPage() {
                       <Tooltip title="Xóa">
                         <IconButton
                           size="small"
-                          onClick={() => handleDelete(alert.id)}
+                          onClick={() => deleteAlert(alert.id)}
                           sx={{
                             color: "text.secondary",
                             "&:hover": { color: "error.main" },

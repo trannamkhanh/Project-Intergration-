@@ -37,6 +37,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthContext";
+import { useAlerts } from "../../contexts/AlertContext";
 
 const DRAWER_WIDTH = 260;
 const DRAWER_COLLAPSED = 72;
@@ -61,6 +62,7 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { unreadCount } = useAlerts();
 
   const handleDrawerToggle = () => setDrawerOpen(!drawerOpen);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
@@ -138,8 +140,8 @@ export default function MainLayout() {
                       justifyContent: "center",
                     }}
                   >
-                    {item.text === "Alerts" ? (
-                      <Badge badgeContent={4} color="error">
+                    {item.text === "Cảnh báo" ? (
+                      <Badge badgeContent={unreadCount} color="error">
                         {item.icon}
                       </Badge>
                     ) : (
@@ -243,7 +245,7 @@ export default function MainLayout() {
 
             <Tooltip title="Thông báo">
               <IconButton onClick={() => navigate("/alerts")} sx={{ mr: 1 }}>
-                <Badge badgeContent={4} color="error">
+                <Badge badgeContent={unreadCount} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>

@@ -4,6 +4,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { SnackbarProvider } from "notistack";
 import theme from "./utils/theme";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AlertProvider } from "./contexts/AlertContext";
 import MainLayout from "./components/layout/MainLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
@@ -44,6 +45,7 @@ function App() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <AuthProvider>
+          <AlertProvider>
           <BrowserRouter>
             <Routes>
               <Route
@@ -74,6 +76,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
+          </AlertProvider>
         </AuthProvider>
       </SnackbarProvider>
     </ThemeProvider>
