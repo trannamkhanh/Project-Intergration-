@@ -688,7 +688,7 @@ def get_dashboard_stats():
 
     # Monthly salary trend
     mysql_cur.execute("""
-        SELECT DATE_FORMAT(SalaryMonth, '%%Y-%%m') as month, SUM(NetSalary) as total
+        SELECT DATE_FORMAT(SalaryMonth, '%Y-%m') as month, SUM(NetSalary) as total
         FROM salaries GROUP BY SalaryMonth ORDER BY SalaryMonth
     """)
     salary_trend = [{"month": row["month"], "total": float(row["total"])} for row in mysql_cur.fetchall()]

@@ -33,6 +33,16 @@ import {
   Edit,
   Delete,
 } from "@mui/icons-material";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 import { attendanceService } from "../../services/api";
 
 const AttendancePage = () => {
@@ -89,6 +99,29 @@ const AttendancePage = () => {
     );
   }, [filteredAttendance]);
 
+  const monthlyTrendData = useMemo(() => {
+    const monthMap = {};
+    filteredAttendance.forEach((record) => {
+      const month = (record.Month || "N/A").slice(0, 7);
+      if (!monthMap[month]) {
+        monthMap[month] = {
+          month,
+          workDays: 0,
+          leaveDays: 0,
+          absentDays: 0,
+        };
+      }
+
+      monthMap[month].workDays += record.WorkDays || 0;
+      monthMap[month].leaveDays += record.LeaveDays || 0;
+      monthMap[month].absentDays += record.AbsentDays || 0;
+    });
+
+    return Object.values(monthMap).sort((a, b) =>
+      a.month.localeCompare(b.month),
+    );
+  }, [filteredAttendance]);
+
   const handleOpenAdd = () => {
     setEditingRecord(null);
     setFormData({
@@ -128,7 +161,10 @@ const AttendancePage = () => {
         Month: formData.Month,
       };
       if (editingRecord) {
-        const res = await attendanceService.update(editingRecord.AttendanceID, payload);
+        const res = await attendanceService.update(
+          editingRecord.AttendanceID,
+          payload,
+        );
         setAttendance((prev) =>
           prev.map((r) =>
             r.AttendanceID === editingRecord.AttendanceID ? res.data : r,
@@ -219,7 +255,14 @@ const AttendancePage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
@@ -228,12 +271,15 @@ const AttendancePage = () => {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography
-          variant="h4"
-          component="h1"
-          sx={{ fontWeight: 700 }}
-        >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
           Quản lý chấm công
         </Typography>
         <Button
@@ -306,17 +352,66 @@ const AttendancePage = () => {
         ))}
       </Grid>
 
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+            Biểu đồ chấm công theo tháng
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <BarChart data={monthlyTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <RechartsTooltip />
+                <Legend />
+                <Bar
+                  dataKey="workDays"
+                  name="Ngày làm"
+                  fill="#1565c0"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar
+                  dataKey="leaveDays"
+                  name="Ngày nghỉ"
+                  fill="#ed6c02"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar
+                  dataKey="absentDays"
+                  name="Ngày vắng"
+                  fill="#d32f2f"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
+
       <TableContainer component={Paper} elevation={2} sx={{ mb: 3 }}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Ngày làm</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Ngày nghỉ phép</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Ngày vắng</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Tháng</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Trạng thái</TableCell>
-              <TableCell sx={{ fontWeight: 700 }} align="center">Thao tác</TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">
+                Ngày làm
+              </TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">
+                Ngày nghỉ phép
+              </TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">
+                Ngày vắng
+              </TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">
+                Tháng
+              </TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">
+                Trạng thái
+              </TableCell>
+              <TableCell sx={{ fontWeight: 700 }} align="center">
+                Thao tác
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -380,11 +475,23 @@ const AttendancePage = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={formOpen} onClose={() => setFormOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           {editingRecord ? "Sửa bản ghi chấm công" : "Thêm bản ghi chấm công"}
         </DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: "16px !important" }}>
+        <DialogContent
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            pt: "16px !important",
+          }}
+        >
           <TextField
             label="Tên nhân viên"
             name="EmployeeName"
@@ -427,7 +534,10 @@ const AttendancePage = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setFormOpen(false)} sx={{ textTransform: "none" }}>
+          <Button
+            onClick={() => setFormOpen(false)}
+            sx={{ textTransform: "none" }}
+          >
             Hủy
           </Button>
           <Button
@@ -456,7 +566,10 @@ const AttendancePage = () => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteOpen(false)} sx={{ textTransform: "none" }}>
+          <Button
+            onClick={() => setDeleteOpen(false)}
+            sx={{ textTransform: "none" }}
+          >
             Hủy
           </Button>
           <Button

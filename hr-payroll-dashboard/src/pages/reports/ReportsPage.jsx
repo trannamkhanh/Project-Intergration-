@@ -25,9 +25,33 @@ import {
   attendanceService,
   dividendService,
 } from "../../services/api";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " \u20AB";
+
+const CHART_COLORS = [
+  "#1565c0",
+  "#2e7d32",
+  "#7b1fa2",
+  "#ed6c02",
+  "#00838f",
+  "#6d4c41",
+];
 
 // ===== Xuất CSV =====
 function exportCSV(filename, headers, rows) {
@@ -194,6 +218,40 @@ const HRReport = ({ employees, departments }) => {
           </Card>
         </Grid>
       </Grid>
+
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Biểu đồ phân bổ nhân sự theo phòng ban
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={deptCounts}
+                  dataKey="count"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={115}
+                  label
+                >
+                  {deptCounts.map((_, idx) => (
+                    <Cell
+                      key={idx}
+                      fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
     </Box>
   );
 };
@@ -286,6 +344,42 @@ const PayrollReport = ({ salaries, employees }) => {
           </Grid>
         ))}
       </Grid>
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Biểu đồ xu hướng tổng lương
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <LineChart data={monthlyTable}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <RechartsTooltip
+                  formatter={(value) => [formatCurrency(value), "Giá trị"]}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="totalPayroll"
+                  name="Tổng lương"
+                  stroke="#1565c0"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="avgSalary"
+                  name="Lương trung bình"
+                  stroke="#ed6c02"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -406,6 +500,36 @@ const AttendanceReport = ({ attendance }) => {
           </Grid>
         ))}
       </Grid>
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Biểu đồ chấm công theo nhân viên
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <BarChart data={employeeAttendance.slice(0, 10)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <RechartsTooltip />
+                <Legend />
+                <Bar
+                  dataKey="WorkDays"
+                  name="Ngày làm"
+                  fill="#2e7d32"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar
+                  dataKey="AbsentDays"
+                  name="Ngày vắng"
+                  fill="#d32f2f"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
@@ -462,6 +586,20 @@ const DividendReport = ({ dividends }) => {
   const avg =
     dividends.length > 0 ? Math.round(totalDividends / dividends.length) : 0;
 
+  const dividendByEmployee = useMemo(() => {
+    const map = {};
+    dividends.forEach((d) => {
+      const name = d.EmployeeName || "N/A";
+      const amount = d.DividendAmount || d.Amount || 0;
+      map[name] = (map[name] || 0) + amount;
+    });
+
+    return Object.entries(map)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+  }, [dividends]);
+
   const handleExport = () => {
     const headers = ["Tên nhân viên", "Số tiền cổ tức", "Ngày"];
     const rows = dividends.map((d) => [
@@ -516,6 +654,31 @@ const DividendReport = ({ dividends }) => {
           </Grid>
         ))}
       </Grid>
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Top nhân viên theo cổ tức
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <BarChart data={dividendByEmployee}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <RechartsTooltip
+                  formatter={(value) => [formatCurrency(value), "Cổ tức"]}
+                />
+                <Bar
+                  dataKey="amount"
+                  name="Tổng cổ tức"
+                  fill="#7b1fa2"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>

@@ -20,10 +20,27 @@ import {
   Business,
   AttachMoney,
 } from "@mui/icons-material";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LineChart,
+  Line,
+} from "recharts";
 import { reportService } from "../../services/api";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " VND";
+
+const PIE_COLORS = ["#1565c0", "#2e7d32", "#7b1fa2", "#ed6c02", "#00838f"];
 
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
@@ -146,26 +163,32 @@ const DashboardPage = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                 Phân bổ phòng ban
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Phòng ban</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Số nhân viên
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(stats.departmentDistribution || []).map((dept) => (
-                      <TableRow key={dept.name} hover>
-                        <TableCell>{dept.name}</TableCell>
-                        <TableCell align="right">{dept.value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={stats.departmentDistribution || []}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={110}
+                      label
+                    >
+                      {(stats.departmentDistribution || []).map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -177,28 +200,30 @@ const DashboardPage = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                 Xu hướng lương hàng tháng
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Tháng</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Tổng lương
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(stats.monthlySalaryTrend || []).map((item) => (
-                      <TableRow key={item.month} hover>
-                        <TableCell>{item.month}</TableCell>
-                        <TableCell align="right">
-                          {formatCurrency(item.total)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <LineChart data={stats.monthlySalaryTrend || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <RechartsTooltip
+                      formatter={(value) => [
+                        formatCurrency(value),
+                        "Tổng lương",
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      name="Tổng lương"
+                      stroke="#ed6c02"
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -212,26 +237,24 @@ const DashboardPage = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                 Phân bổ trạng thái
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Số lượng
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(stats.statusDistribution || []).map((item) => (
-                      <TableRow key={item.name} hover>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell align="right">{item.value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <BarChart data={stats.statusDistribution || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                    />
+                    <Bar
+                      dataKey="value"
+                      name="Số lượng"
+                      fill="#2e7d32"
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -242,26 +265,31 @@ const DashboardPage = () => {
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                 Phân bổ giới tính
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Giới tính</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Số lượng
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(stats.genderDistribution || []).map((item) => (
-                      <TableRow key={item.name} hover>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell align="right">{item.value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={stats.genderDistribution || []}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      label
+                    >
+                      {(stats.genderDistribution || []).map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

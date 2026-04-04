@@ -10,7 +10,7 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600  # 1 hour
 
-    CORS(app, origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:3000"])
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
     JWTManager(app)
 
     # Import va dang ky routes tu service.py

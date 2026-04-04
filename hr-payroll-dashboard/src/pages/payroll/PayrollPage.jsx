@@ -25,7 +25,24 @@ import {
   CircularProgress,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
-import { AttachMoney, TrendingUp, Search, Add, Edit, Delete } from "@mui/icons-material";
+import {
+  AttachMoney,
+  TrendingUp,
+  Search,
+  Add,
+  Edit,
+  Delete,
+} from "@mui/icons-material";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 import { payrollService } from "../../services/api";
 
 const formatVND = (value) =>
@@ -92,8 +109,31 @@ const PayrollPage = () => {
     );
     const averageSalary =
       filteredSalaries.length > 0 ? totalPayroll / filteredSalaries.length : 0;
-    const totalBonuses = filteredSalaries.reduce((sum, s) => sum + (s.Bonus || 0), 0);
+    const totalBonuses = filteredSalaries.reduce(
+      (sum, s) => sum + (s.Bonus || 0),
+      0,
+    );
     return { totalPayroll, averageSalary, totalBonuses };
+  }, [filteredSalaries]);
+
+  const salaryTrendData = useMemo(() => {
+    const monthMap = {};
+    filteredSalaries.forEach((salary) => {
+      const month = (salary.SalaryMonth || "N/A").slice(0, 7);
+      if (!monthMap[month]) {
+        monthMap[month] = {
+          month,
+          totalNetSalary: 0,
+          totalBonus: 0,
+        };
+      }
+      monthMap[month].totalNetSalary += salary.NetSalary || 0;
+      monthMap[month].totalBonus += salary.Bonus || 0;
+    });
+
+    return Object.values(monthMap).sort((a, b) =>
+      a.month.localeCompare(b.month),
+    );
   }, [filteredSalaries]);
 
   const paginatedSalaries = useMemo(() => {
@@ -233,7 +273,14 @@ const PayrollPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
         <CircularProgress />
         <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
@@ -242,12 +289,15 @@ const PayrollPage = () => {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography
-          variant="h4"
-          component="h1"
-          sx={{ fontWeight: 700 }}
-        >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
           Quản lý lương
         </Typography>
         <Button
@@ -355,18 +405,67 @@ const PayrollPage = () => {
         ))}
       </Grid>
 
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+            Biểu đồ lương theo tháng
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <LineChart data={salaryTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <RechartsTooltip
+                  formatter={(value) => [formatVND(value), "Giá trị"]}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="totalNetSalary"
+                  name="Tổng lương thực nhận"
+                  stroke="#1565c0"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalBonus"
+                  name="Tổng thưởng"
+                  stroke="#2e7d32"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
+
       <Paper elevation={2} sx={{ overflow: "hidden" }}>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Lương cơ bản</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Thưởng</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Khấu trừ</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="right">Lương thực nhận</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="center">Tháng</TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="center">Thao tác</TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">
+                  Lương cơ bản
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">
+                  Thưởng
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">
+                  Khấu trừ
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="right">
+                  Lương thực nhận
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="center">
+                  Tháng
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="center">
+                  Thao tác
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -379,14 +478,28 @@ const PayrollPage = () => {
                     sx={{ cursor: "pointer" }}
                   >
                     <TableCell>{salary.EmployeeName}</TableCell>
-                    <TableCell align="right">{formatVND(salary.BaseSalary)}</TableCell>
                     <TableCell align="right">
-                      <Chip label={formatVND(salary.Bonus)} size="small" color="success" variant="outlined" />
+                      {formatVND(salary.BaseSalary)}
                     </TableCell>
                     <TableCell align="right">
-                      <Chip label={formatVND(salary.Deductions)} size="small" color="error" variant="outlined" />
+                      <Chip
+                        label={formatVND(salary.Bonus)}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>{formatVND(salary.NetSalary)}</TableCell>
+                    <TableCell align="right">
+                      <Chip
+                        label={formatVND(salary.Deductions)}
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      {formatVND(salary.NetSalary)}
+                    </TableCell>
                     <TableCell align="center">
                       <Chip label={salary.SalaryMonth} size="small" />
                     </TableCell>
@@ -439,7 +552,12 @@ const PayrollPage = () => {
         />
       </Paper>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
         {selectedEmployee && (
           <>
             <DialogTitle sx={{ fontWeight: 700 }}>
@@ -448,26 +566,43 @@ const PayrollPage = () => {
             <DialogContent dividers>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Lương cơ bản</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Lương cơ bản
+                  </Typography>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                     {formatVND(selectedEmployee.BaseSalary)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Thưởng</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#2e7d32" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Thưởng
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, color: "#2e7d32" }}
+                  >
                     {formatVND(selectedEmployee.Bonus)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Khấu trừ</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#d32f2f" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Khấu trừ
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, color: "#d32f2f" }}
+                  >
                     {formatVND(selectedEmployee.Deductions)}
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <Typography variant="body2" color="text.secondary">Lương thực nhận</Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: "#1565c0" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Lương thực nhận
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ fontWeight: 600, color: "#1565c0" }}
+                  >
                     {formatVND(selectedEmployee.NetSalary)}
                   </Typography>
                 </Grid>
@@ -481,19 +616,33 @@ const PayrollPage = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Tháng</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Lương cơ bản</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Thưởng</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Khấu trừ</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Thực nhận</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        Lương cơ bản
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        Thưởng
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        Khấu trừ
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        Thực nhận
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {employeeSalaryHistory.map((record) => (
                       <TableRow key={record.SalaryID}>
                         <TableCell>{record.SalaryMonth}</TableCell>
-                        <TableCell align="right">{formatVND(record.BaseSalary)}</TableCell>
-                        <TableCell align="right">{formatVND(record.Bonus)}</TableCell>
-                        <TableCell align="right">{formatVND(record.Deductions)}</TableCell>
+                        <TableCell align="right">
+                          {formatVND(record.BaseSalary)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatVND(record.Bonus)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatVND(record.Deductions)}
+                        </TableCell>
                         <TableCell align="right" sx={{ fontWeight: 600 }}>
                           {formatVND(record.NetSalary)}
                         </TableCell>
@@ -504,13 +653,20 @@ const PayrollPage = () => {
               </TableContainer>
             </DialogContent>
             <DialogActions sx={{ px: 3, py: 2 }}>
-              <Button onClick={handleCloseDialog} variant="contained">Đóng</Button>
+              <Button onClick={handleCloseDialog} variant="contained">
+                Đóng
+              </Button>
             </DialogActions>
           </>
         )}
       </Dialog>
 
-      <Dialog open={formDialogOpen} onClose={handleCloseFormDialog} maxWidth="sm" fullWidth>
+      <Dialog
+        open={formDialogOpen}
+        onClose={handleCloseFormDialog}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           {formMode === "add" ? "Thêm lương" : "Sửa lương"}
         </DialogTitle>
@@ -578,19 +734,29 @@ const PayrollPage = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} maxWidth="xs" fullWidth>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>Xác nhận xóa</DialogTitle>
         <DialogContent>
           {deletingSalary && (
             <Typography>
               Bạn có chắc chắn muốn xóa bản ghi lương của{" "}
-              <strong>{deletingSalary.EmployeeName}</strong> ({deletingSalary.SalaryMonth})?
+              <strong>{deletingSalary.EmployeeName}</strong> (
+              {deletingSalary.SalaryMonth})?
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDeleteDialog}>Hủy</Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error">
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+          >
             Xóa
           </Button>
         </DialogActions>

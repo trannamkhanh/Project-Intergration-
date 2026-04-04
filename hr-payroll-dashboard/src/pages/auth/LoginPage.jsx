@@ -50,7 +50,11 @@ const LoginPage = () => {
       login(user, token);
       navigate("/");
     } catch (err) {
-      const msg = err.response?.data?.error || "Tên đăng nhập hoặc mật khẩu không đúng.";
+      const msg =
+        err.response?.data?.error ||
+        (err.request
+          ? "Khong ket noi duoc toi server API. Vui long kiem tra dia chi API va backend."
+          : "Ten dang nhap hoac mat khau khong dung.");
       setError(msg);
     } finally {
       setLoading(false);
