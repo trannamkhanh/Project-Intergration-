@@ -40,7 +40,44 @@ import { reportService } from "../../services/api";
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " VND";
 
-const PIE_COLORS = ["#1565c0", "#2e7d32", "#7b1fa2", "#ed6c02", "#00838f"];
+const PIE_COLORS = [
+  "#1565c0",
+  "#2e7d32",
+  "#7b1fa2",
+  "#ed6c02",
+  "#00838f",
+  "#d32f2f",
+  "#9c27b0",
+  "#ff5722",
+  "#4caf50",
+  "#607d8b",
+  "#ffc107",
+  "#3f51b5",
+];
+
+const STATUS_LABELS = {
+  Active: "Đang làm việc",
+  "Đang làm việc": "Đang làm việc",
+  "Nghỉ phép": "Nghỉ phép",
+  "Thử việc": "Thử việc",
+  "Thực tập": "Thực tập",
+};
+
+const STATUS_COLORS = {
+  "Đang làm việc": "#2e7d32",
+  "Nghỉ phép": "#ed6c02",
+  "Thử việc": "#7b1fa2",
+  "Thực tập": "#8e24aa",
+  Active: "#2e7d32",
+};
+
+const GENDER_LABELS = {
+  Male: "Nam",
+  Female: "Nữ",
+  Nam: "Nam",
+  Nữ: "Nữ",
+  "Khong xac dinh": "Chưa xác định",
+};
 
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
@@ -103,6 +140,17 @@ const DashboardPage = () => {
       color: "#ed6c02",
     },
   ];
+
+  const genderData = Object.values(
+    (stats.genderDistribution || []).reduce((acc, item) => {
+      const name = GENDER_LABELS[item.name] || item.name;
+      if (!acc[name]) {
+        acc[name] = { name, value: 0 };
+      }
+      acc[name].value += item.value;
+      return acc;
+    }, {}),
+  );
 
   return (
     <Box>
@@ -241,17 +289,29 @@ const DashboardPage = () => {
                 <ResponsiveContainer>
                   <BarChart data={stats.statusDistribution || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
+                    <XAxis
+                      dataKey="name"
+                      tickFormatter={(value) => STATUS_LABELS[value] || value}
+                    />
                     <YAxis allowDecimals={false} />
                     <RechartsTooltip
                       formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                      labelFormatter={(label) => STATUS_LABELS[label] || label}
                     />
-                    <Bar
-                      dataKey="value"
-                      name="Số lượng"
-                      fill="#2e7d32"
-                      radius={[6, 6, 0, 0]}
-                    />
+                    <Bar dataKey="value" name="Số lượng" radius={[6, 6, 0, 0]}>
+                      {(stats.statusDistribution || []).map((entry, index) => {
+                        const label = STATUS_LABELS[entry.name] || entry.name;
+                        return (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              STATUS_COLORS[label] ||
+                              PIE_COLORS[index % PIE_COLORS.length]
+                            }
+                          />
+                        );
+                      })}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </Box>
@@ -269,7 +329,7 @@ const DashboardPage = () => {
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
-                      data={stats.genderDistribution || []}
+                      data={genderData}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -277,7 +337,7 @@ const DashboardPage = () => {
                       outerRadius={90}
                       label
                     >
-                      {(stats.genderDistribution || []).map((_, index) => (
+                      {genderData.map((_, index) => (
                         <Cell
                           key={index}
                           fill={PIE_COLORS[index % PIE_COLORS.length]}
@@ -287,6 +347,7 @@ const DashboardPage = () => {
                     <RechartsTooltip
                       formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
                     />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </Box>

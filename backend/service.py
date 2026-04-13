@@ -915,7 +915,20 @@ def get_dashboard_stats():
 
     # Gender distribution
     cursor.execute("SELECT Gender, COUNT(*) as cnt FROM Employees GROUP BY Gender")
-    gender_dist = [{"name": row[0] or "Khong xac dinh", "value": row[1]} for row in cursor.fetchall()]
+    gender_counts = {}
+    gender_map = {
+        "Male": "Nam",
+        "Female": "Nữ",
+        "M": "Nam",
+        "F": "Nữ",
+        "male": "Nam",
+        "female": "Nữ",
+    }
+    for row in cursor.fetchall():
+        raw_gender = row[0] or "Khong xac dinh"
+        gender_label = gender_map.get(raw_gender, raw_gender)
+        gender_counts[gender_label] = gender_counts.get(gender_label, 0) + row[1]
+    gender_dist = [{"name": name, "value": value} for name, value in gender_counts.items()]
 
     # Department distribution
     cursor.execute("""
