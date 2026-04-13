@@ -25,11 +25,8 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
-  Business as BusinessIcon,
-  WorkOutline as WorkIcon,
   AttachMoney as PayrollIcon,
   CalendarMonth as AttendanceIcon,
-  Savings as DividendsIcon,
   Assessment as ReportsIcon,
   Notifications as NotificationsIcon,
   Logout as LogoutIcon,
@@ -45,13 +42,11 @@ const DRAWER_COLLAPSED = 72;
 const menuItems = [
   { text: "Tổng quan", icon: <DashboardIcon />, path: "/" },
   { text: "Nhân viên", icon: <PeopleIcon />, path: "/employees" },
-  { text: "Phòng ban", icon: <BusinessIcon />, path: "/departments" },
-  { text: "Chức vụ", icon: <WorkIcon />, path: "/positions" },
   { text: "Bảng lương", icon: <PayrollIcon />, path: "/payroll" },
   { text: "Chấm công", icon: <AttendanceIcon />, path: "/attendance" },
-  { text: "Cổ tức", icon: <DividendsIcon />, path: "/dividends" },
   { text: "Báo cáo", icon: <ReportsIcon />, path: "/reports" },
   { text: "Cảnh báo", icon: <NotificationsIcon />, path: "/alerts" },
+  { text: "User/Profile", icon: <AccountIcon />, path: "/profile" },
 ];
 
 export default function MainLayout() {
@@ -274,6 +269,14 @@ export default function MainLayout() {
             >
               <MenuItem disabled>
                 <AccountIcon sx={{ mr: 1 }} /> {user?.fullName || "Admin User"}
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleMenuClose();
+                  navigate("/profile");
+                }}
+              >
+                <AccountIcon sx={{ mr: 1 }} /> Hồ sơ
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>

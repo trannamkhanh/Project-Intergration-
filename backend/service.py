@@ -2,9 +2,13 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from config import get_sqlserver_connection, get_mysql_connection
 from decimal import Decimal
-from werkzeug.security import check_password_hash
+from datetime import datetime, date
+from werkzeug.security import check_password_hash, generate_password_hash
 
 api = Blueprint("api", __name__)
+
+# Runtime read-state for alerts (ephemeral, reset on server restart).
+ALERT_READ_IDS = set()
 
 
 # Helper: convert pyodbc Row to dict
@@ -73,6 +77,251 @@ def login():
             "role": user["Role"],
         }
     })
+
+
+@api.route("/auth/profile", methods=["GET"])
+@jwt_required()
+def get_profile():
+    user_id = get_jwt_identity()
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT UserID, Username, FullName, Email, Role FROM Users WHERE UserID = ?",
+        user_id,
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return jsonify({"error": "Khong tim thay nguoi dung"}), 404
+
+    user = row_to_dict(cursor, row)
+    return jsonify({
+        "id": user["UserID"],
+        "username": user.get("Username"),
+        "fullName": user.get("FullName"),
+        "email": user.get("Email"),
+        "role": user.get("Role"),
+    })
+
+
+@api.route("/auth/change-password", methods=["POST"])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    current_password = data.get("currentPassword", "")
+    new_password = data.get("newPassword", "")
+
+    if not current_password or not new_password:
+        return jsonify({"error": "Vui long nhap day du mat khau"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"error": "Mat khau moi phai co it nhat 6 ky tu"}), 400
+
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT PasswordHash FROM Users WHERE UserID = ?", user_id)
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        return jsonify({"error": "Khong tim thay nguoi dung"}), 404
+
+    password_hash = row[0]
+    if not check_password_hash(password_hash, current_password):
+        conn.close()
+        return jsonify({"error": "Mat khau hien tai khong dung"}), 400
+
+    new_hash = generate_password_hash(new_password)
+    cursor.execute(
+        "UPDATE Users SET PasswordHash = ? WHERE UserID = ?",
+        new_hash,
+        user_id,
+    )
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Doi mat khau thanh cong"})
+
+
+@api.route("/auth/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    return jsonify({"message": "Dang xuat thanh cong"})
+
+
+def _to_date(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value[:10]).date()
+        except ValueError:
+            return None
+    return None
+
+
+def _build_alerts():
+    alerts = []
+    alert_id = 1
+    today = date.today()
+
+    # Birthdays + work anniversaries from SQL Server Employees
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT EmployeeID, FullName, DateOfBirth, HireDate FROM Employees")
+    employees = rows_to_list(cursor, cursor.fetchall())
+    conn.close()
+
+    for emp in employees:
+        dob = _to_date(emp.get("DateOfBirth"))
+        if dob:
+            birthday = date(today.year, dob.month, dob.day)
+            diff = (birthday - today).days
+            if -7 <= diff <= 30:
+                alerts.append({
+                    "id": alert_id,
+                    "employeeId": emp.get("EmployeeID"),
+                    "type": "birthday",
+                    "title": "Sinh nhat",
+                    "message": f"{emp.get('FullName', '')} {'vua' if diff < 0 else 'se'} den sinh nhat trong {abs(diff)} ngay",
+                    "severity": "info",
+                    "read": alert_id in ALERT_READ_IDS,
+                    "date": birthday.isoformat(),
+                })
+                alert_id += 1
+
+        hire = _to_date(emp.get("HireDate"))
+        if hire:
+            years = today.year - hire.year
+            if years > 0 and years % 5 == 0:
+                anniversary = date(today.year, hire.month, hire.day)
+                diff = (anniversary - today).days
+                if -30 <= diff <= 60:
+                    alerts.append({
+                        "id": alert_id,
+                        "employeeId": emp.get("EmployeeID"),
+                        "type": "work_anniversary",
+                        "title": "Work anniversary",
+                        "message": f"{emp.get('FullName', '')} se ky niem {years} nam lam viec",
+                        "severity": "info",
+                        "read": alert_id in ALERT_READ_IDS,
+                        "date": anniversary.isoformat(),
+                    })
+                    alert_id += 1
+
+    # Leave exceeded from MySQL attendance
+    mysql_conn = get_mysql_connection()
+    mysql_cur = mysql_conn.cursor()
+    mysql_cur.execute(
+        """
+        SELECT a.EmployeeID, a.WorkDays, a.LeaveDays, a.AbsentDays,
+               a.AttendanceMonth AS Month, ep.FullName AS EmployeeName
+        FROM attendance a
+        LEFT JOIN employees_payroll ep ON a.EmployeeID = ep.EmployeeID
+        """
+    )
+    attendance_rows = mysql_cur.fetchall()
+
+    for row in attendance_rows:
+        leave_days = row.get("LeaveDays") or 0
+        absent_days = row.get("AbsentDays") or 0
+        if leave_days > 3 or absent_days > 1:
+            month_val = row.get("Month")
+            month_text = month_val.strftime("%Y-%m") if hasattr(month_val, "strftime") else str(month_val or "")
+            alerts.append({
+                "id": alert_id,
+                "employeeId": row.get("EmployeeID"),
+                "type": "leave",
+                "title": "Nghi qua so ngay" if absent_days <= 1 else "Vang mat nhieu",
+                "message": f"{row.get('EmployeeName', '')} co {leave_days} ngay nghi phep va {absent_days} ngay vang mat trong thang {month_text}",
+                "severity": "critical" if absent_days > 2 else "warning",
+                "read": alert_id in ALERT_READ_IDS,
+                "date": today.isoformat(),
+            })
+            alert_id += 1
+
+    # Salary anomalies from MySQL salaries
+    mysql_cur.execute(
+        """
+        SELECT s.EmployeeID, s.SalaryMonth, s.NetSalary, ep.FullName AS EmployeeName
+        FROM salaries s
+        LEFT JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
+        ORDER BY s.EmployeeID, s.SalaryMonth
+        """
+    )
+    salary_rows = mysql_cur.fetchall()
+    mysql_conn.close()
+
+    by_employee = {}
+    for row in salary_rows:
+        by_employee.setdefault(row.get("EmployeeID"), []).append(row)
+
+    for _, rows in by_employee.items():
+        if len(rows) < 2:
+            continue
+        prev = rows[-2]
+        curr = rows[-1]
+        prev_net = float(prev.get("NetSalary") or 0)
+        curr_net = float(curr.get("NetSalary") or 0)
+        if prev_net <= 0:
+            continue
+        diff_pct = ((curr_net - prev_net) / prev_net) * 100
+        if abs(diff_pct) > 10:
+            prev_month = prev.get("SalaryMonth")
+            curr_month = curr.get("SalaryMonth")
+            prev_text = prev_month.strftime("%Y-%m") if hasattr(prev_month, "strftime") else str(prev_month or "")
+            curr_text = curr_month.strftime("%Y-%m") if hasattr(curr_month, "strftime") else str(curr_month or "")
+            alerts.append({
+                "id": alert_id,
+                "employeeId": curr.get("EmployeeID"),
+                "type": "salary",
+                "title": "Bat thuong luong",
+                "message": f"{curr.get('EmployeeName', '')}: luong thay doi {diff_pct:+.1f}% tu {prev_text} sang {curr_text}",
+                "severity": "critical",
+                "read": alert_id in ALERT_READ_IDS,
+                "date": today.isoformat(),
+            })
+            alert_id += 1
+
+    return alerts
+
+
+@api.route("/alerts", methods=["GET"])
+def get_alerts():
+    try:
+        return jsonify(_build_alerts())
+    except Exception as exc:
+        return jsonify({"error": f"Khong the tai du lieu canh bao: {exc}"}), 500
+
+
+@api.route("/alerts/anniversaries", methods=["GET"])
+def get_anniversaries():
+    alerts = [a for a in _build_alerts() if a.get("type") in ("birthday", "work_anniversary")]
+    return jsonify(alerts)
+
+
+@api.route("/alerts/leave-exceeded", methods=["GET"])
+def get_leave_exceeded():
+    alerts = [a for a in _build_alerts() if a.get("type") == "leave"]
+    return jsonify(alerts)
+
+
+@api.route("/alerts/salary-discrepancies", methods=["GET"])
+def get_salary_discrepancies():
+    alerts = [a for a in _build_alerts() if a.get("type") == "salary"]
+    return jsonify(alerts)
+
+
+@api.route("/alerts/<int:alert_id>/read", methods=["PUT"])
+def mark_alert_read(alert_id):
+    ALERT_READ_IDS.add(alert_id)
+    return jsonify({"message": "Da danh dau da doc"})
 
 
 # ============================

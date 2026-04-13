@@ -44,6 +44,7 @@ import {
   payrollService,
   attendanceService,
 } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ResponsiveContainer,
   PieChart,
@@ -103,6 +104,9 @@ const EMPLOYEE_CHART_COLORS = [
 ];
 
 export default function EmployeesPage() {
+  const { hasRole } = useAuth();
+  const canManageEmployee = hasRole("HR") || hasRole("Admin");
+
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
@@ -237,6 +241,7 @@ export default function EmployeesPage() {
   };
 
   const handleOpenAdd = () => {
+    if (!canManageEmployee) return;
     setDialogMode("add");
     setSelectedEmployee(null);
     setFormData(initialFormState);
@@ -244,6 +249,7 @@ export default function EmployeesPage() {
   };
 
   const handleOpenEdit = (employee) => {
+    if (!canManageEmployee) return;
     setDialogMode("edit");
     setSelectedEmployee(employee);
     setFormData({
@@ -271,6 +277,10 @@ export default function EmployeesPage() {
   };
 
   const handleSave = async () => {
+    if (!canManageEmployee) {
+      alert("Ban khong co quyen thao tac chuc nang nay.");
+      return;
+    }
     try {
       if (dialogMode === "add") {
         const res = await employeeService.create(formData);
@@ -294,6 +304,7 @@ export default function EmployeesPage() {
   };
 
   const handleOpenDelete = (employee) => {
+    if (!canManageEmployee) return;
     const constraints = checkDeleteConstraints(employee);
     setDeleteConstraints(constraints);
     setEmployeeToDelete(employee);
@@ -307,6 +318,10 @@ export default function EmployeesPage() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canManageEmployee) {
+      alert("Ban khong co quyen thao tac chuc nang nay.");
+      return;
+    }
     try {
       await employeeService.delete(employeeToDelete.EmployeeID);
       setEmployees((prev) =>
@@ -355,13 +370,15 @@ export default function EmployeesPage() {
         }}
       >
         <Typography variant="h4">Nhân viên</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenAdd}
-        >
-          Thêm nhân viên
-        </Button>
+        {canManageEmployee && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenAdd}
+          >
+            Thêm nhân viên
+          </Button>
+        )}
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }}>
@@ -548,6 +565,7 @@ export default function EmployeesPage() {
                         size="small"
                         color="primary"
                         onClick={() => handleOpenEdit(emp)}
+                        disabled={!canManageEmployee}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
@@ -557,6 +575,7 @@ export default function EmployeesPage() {
                         size="small"
                         color="error"
                         onClick={() => handleOpenDelete(emp)}
+                        disabled={!canManageEmployee}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>

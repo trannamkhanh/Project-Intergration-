@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -17,44 +18,55 @@ import {
   Cake,
   EventBusy,
   TrendingDown,
+  WorkHistory,
   MarkEmailRead,
   Delete,
   NotificationsActive,
   Warning,
   CheckCircle,
+  Visibility,
 } from "@mui/icons-material";
 import { useAlerts } from "../../contexts/AlertContext";
 
 const severityColorMap = {
   info: "#1565c0",
   warning: "#ed6c02",
-  error: "#d32f2f",
+  critical: "#d32f2f",
 };
 
 const severityBgMap = {
   info: "#e3f2fd",
   warning: "#fff3e0",
-  error: "#fbe9e7",
+  critical: "#fbe9e7",
 };
 
 const typeIconMap = {
-  anniversary: <Cake />,
+  birthday: <Cake />,
+  work_anniversary: <WorkHistory />,
   leave: <EventBusy />,
   salary: <TrendingDown />,
 };
 
 const typeLabelMap = {
-  anniversary: "Kỷ niệm",
-  leave: "Nghỉ phép",
-  salary: "Lương",
+  birthday: "Sinh nhật",
+  work_anniversary: "Work anniversary",
+  leave: "Nghỉ quá số ngày",
+  salary: "Bất thường lương",
 };
 
-const filterOptions = ["Tất cả", "Kỷ niệm", "Nghỉ phép", "Lương"];
+const filterOptions = [
+  "Tất cả",
+  "Sinh nhật",
+  "Work anniversary",
+  "Nghỉ quá số ngày",
+  "Bất thường lương",
+];
 const filterMap = {
   "Tất cả": "all",
-  "Kỷ niệm": "anniversary",
-  "Nghỉ phép": "leave",
-  Lương: "salary",
+  "Sinh nhật": "birthday",
+  "Work anniversary": "work_anniversary",
+  "Nghỉ quá số ngày": "leave",
+  "Bất thường lương": "salary",
 };
 
 function formatDateVN(dateStr) {
@@ -68,7 +80,9 @@ function formatDateVN(dateStr) {
 }
 
 export default function AlertsPage() {
-  const { alerts, loading, unreadCount, markAsRead, markAllRead, deleteAlert } = useAlerts();
+  const navigate = useNavigate();
+  const { alerts, loading, unreadCount, markAsRead, markAllRead, deleteAlert } =
+    useAlerts();
   const [activeFilter, setActiveFilter] = useState("Tất cả");
 
   const filteredAlerts = useMemo(() => {
@@ -78,7 +92,7 @@ export default function AlertsPage() {
   }, [alerts, activeFilter]);
 
   const totalCount = alerts.length;
-  const criticalCount = alerts.filter((a) => a.severity === "error").length;
+  const criticalCount = alerts.filter((a) => a.severity === "critical").length;
 
   const summaryCards = [
     {
@@ -284,6 +298,17 @@ export default function AlertsPage() {
                             color: severityColor,
                           }}
                         />
+                        <Chip
+                          label={(alert.severity || "info").toUpperCase()}
+                          size="small"
+                          sx={{
+                            height: 22,
+                            fontSize: "0.7rem",
+                            fontWeight: 600,
+                            backgroundColor: "#f5f5f5",
+                            color: "#616161",
+                          }}
+                        />
                         {!alert.read && (
                           <Chip
                             label="MỚI"
@@ -322,6 +347,17 @@ export default function AlertsPage() {
                         flexShrink: 0,
                       }}
                     >
+                      {alert.employeeId && (
+                        <Tooltip title="Xem chi tiết nhân viên">
+                          <IconButton
+                            size="small"
+                            onClick={() => navigate("/employees")}
+                            sx={{ color: "primary.main" }}
+                          >
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       {!alert.read && (
                         <Tooltip title="Đánh dấu đã đọc">
                           <IconButton

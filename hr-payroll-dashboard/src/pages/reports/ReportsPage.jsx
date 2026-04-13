@@ -16,6 +16,7 @@ import {
   Paper,
   Button,
   CircularProgress,
+  TextField,
 } from "@mui/material";
 import { Download as DownloadIcon } from "@mui/icons-material";
 import {
@@ -40,6 +41,8 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
 } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " \u20AB";
@@ -53,19 +56,43 @@ const CHART_COLORS = [
   "#6d4c41",
 ];
 
-// ===== Xuất CSV =====
-function exportCSV(filename, headers, rows) {
+function exportExcel(filename, headers, rows) {
   const BOM = "\uFEFF";
-  const csvContent =
+  const excelContent =
     BOM +
-    headers.join(",") +
+    headers.join("\t") +
     "\n" +
-    rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    rows.map((row) => row.map((cell) => `${cell ?? ""}`).join("\t")).join("\n");
+  const blob = new Blob([excelContent], {
+    type: "application/vnd.ms-excel;charset=utf-8;",
+  });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = filename;
   link.click();
+}
+
+function exportPDF(filename, title, headers, rows) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  doc.setFontSize(14);
+  doc.text(title, 40, 40);
+  autoTable(doc, {
+    head: [headers],
+    body: rows,
+    startY: 60,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [21, 101, 192] },
+  });
+  doc.save(filename);
+}
+
+function inMonthRange(value, fromMonth, toMonth) {
+  if (!fromMonth && !toMonth) return true;
+  const month = (value || "").slice(0, 7);
+  if (!month) return false;
+  if (fromMonth && month < fromMonth) return false;
+  if (toMonth && month > toMonth) return false;
+  return true;
 }
 
 // ===== TAB 1 - Báo cáo nhân sự =====
@@ -115,7 +142,27 @@ const HRReport = ({ employees, departments }) => {
       e.Status,
       e.HireDate,
     ]);
-    exportCSV("bao_cao_nhan_su.csv", headers, rows);
+    exportExcel("bao_cao_nhan_su.xls", headers, rows);
+  };
+
+  const handleExportPDF = () => {
+    const headers = [
+      "Họ tên",
+      "Email",
+      "Phòng ban",
+      "Chức vụ",
+      "Trạng thái",
+      "Ngày vào làm",
+    ];
+    const rows = employees.map((e) => [
+      e.FullName,
+      e.Email,
+      e.DepartmentName,
+      e.PositionName,
+      e.Status,
+      e.HireDate,
+    ]);
+    exportPDF("bao_cao_nhan_su.pdf", "Bao cao nhan su", headers, rows);
   };
 
   return (
@@ -126,7 +173,15 @@ const HRReport = ({ employees, departments }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuất CSV
+          Xuất Excel
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExportPDF}
+          sx={{ ml: 1 }}
+        >
+          Xuất PDF
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -304,7 +359,27 @@ const PayrollReport = ({ salaries, employees }) => {
       s.NetSalary,
       s.SalaryMonth,
     ]);
-    exportCSV("bao_cao_luong.csv", headers, rows);
+    exportExcel("bao_cao_luong.xls", headers, rows);
+  };
+
+  const handleExportPDF = () => {
+    const headers = [
+      "Tên nhân viên",
+      "Lương cơ bản",
+      "Thưởng",
+      "Khấu trừ",
+      "Thực nhận",
+      "Tháng",
+    ];
+    const rows = salaries.map((s) => [
+      s.EmployeeName,
+      s.BaseSalary,
+      s.Bonus,
+      s.Deductions,
+      s.NetSalary,
+      s.SalaryMonth,
+    ]);
+    exportPDF("bao_cao_luong.pdf", "Bao cao luong", headers, rows);
   };
 
   const summaryCards = [
@@ -322,7 +397,15 @@ const PayrollReport = ({ salaries, employees }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuất CSV
+          Xuất Excel
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExportPDF}
+          sx={{ ml: 1 }}
+        >
+          Xuất PDF
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -461,7 +544,25 @@ const AttendanceReport = ({ attendance }) => {
       a.AbsentDays,
       a.Month,
     ]);
-    exportCSV("bao_cao_cham_cong.csv", headers, rows);
+    exportExcel("bao_cao_cham_cong.xls", headers, rows);
+  };
+
+  const handleExportPDF = () => {
+    const headers = [
+      "Tên nhân viên",
+      "Ngày làm việc",
+      "Ngày nghỉ phép",
+      "Ngày vắng mặt",
+      "Tháng",
+    ];
+    const rows = attendance.map((a) => [
+      a.EmployeeName,
+      a.WorkDays,
+      a.LeaveDays,
+      a.AbsentDays,
+      a.Month,
+    ]);
+    exportPDF("bao_cao_cham_cong.pdf", "Bao cao cham cong", headers, rows);
   };
 
   const summaryCards = [
@@ -478,7 +579,15 @@ const AttendanceReport = ({ attendance }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuất CSV
+          Xuất Excel
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExportPDF}
+          sx={{ ml: 1 }}
+        >
+          Xuất PDF
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -607,7 +716,17 @@ const DividendReport = ({ dividends }) => {
       d.DividendAmount || d.Amount,
       d.DividendDate || d.Date,
     ]);
-    exportCSV("bao_cao_co_tuc.csv", headers, rows);
+    exportExcel("bao_cao_co_tuc.xls", headers, rows);
+  };
+
+  const handleExportPDF = () => {
+    const headers = ["Tên nhân viên", "Số tiền cổ tức", "Ngày"];
+    const rows = dividends.map((d) => [
+      d.EmployeeName,
+      d.DividendAmount || d.Amount,
+      d.DividendDate || d.Date,
+    ]);
+    exportPDF("bao_cao_co_tuc.pdf", "Bao cao co tuc", headers, rows);
   };
 
   const summaryCards = [
@@ -632,7 +751,15 @@ const DividendReport = ({ dividends }) => {
           startIcon={<DownloadIcon />}
           onClick={handleExport}
         >
-          Xuất CSV
+          Xuất Excel
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExportPDF}
+          sx={{ ml: 1 }}
+        >
+          Xuất PDF
         </Button>
       </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -727,6 +854,8 @@ const ReportsPage = () => {
   const [salaries, setSalaries] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [dividends, setDividends] = useState([]);
+  const [fromMonth, setFromMonth] = useState("");
+  const [toMonth, setToMonth] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -753,6 +882,25 @@ const ReportsPage = () => {
     fetchData();
   }, []);
 
+  const filteredSalaries = useMemo(
+    () =>
+      salaries.filter((s) => inMonthRange(s.SalaryMonth, fromMonth, toMonth)),
+    [salaries, fromMonth, toMonth],
+  );
+
+  const filteredAttendance = useMemo(
+    () => attendance.filter((a) => inMonthRange(a.Month, fromMonth, toMonth)),
+    [attendance, fromMonth, toMonth],
+  );
+
+  const filteredDividends = useMemo(
+    () =>
+      dividends.filter((d) =>
+        inMonthRange(d.DividendDate || d.Date, fromMonth, toMonth),
+      ),
+    [dividends, fromMonth, toMonth],
+  );
+
   if (loading) {
     return (
       <Box
@@ -775,6 +923,44 @@ const ReportsPage = () => {
         Báo cáo & Phân tích
       </Typography>
 
+      <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <TextField
+              type="month"
+              label="Từ tháng"
+              fullWidth
+              value={fromMonth}
+              onChange={(e) => setFromMonth(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <TextField
+              type="month"
+              label="Đến tháng"
+              fullWidth
+              value={toMonth}
+              onChange={(e) => setToMonth(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setFromMonth("");
+                setToMonth("");
+              }}
+              sx={{ height: "100%", minHeight: 56 }}
+              fullWidth
+            >
+              Xóa lọc thời gian
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
       <Paper elevation={2} sx={{ mb: 3 }}>
         <Tabs
           value={tabIndex}
@@ -794,10 +980,10 @@ const ReportsPage = () => {
         <HRReport employees={employees} departments={departments} />
       )}
       {tabIndex === 1 && (
-        <PayrollReport salaries={salaries} employees={employees} />
+        <PayrollReport salaries={filteredSalaries} employees={employees} />
       )}
-      {tabIndex === 2 && <AttendanceReport attendance={attendance} />}
-      {tabIndex === 3 && <DividendReport dividends={dividends} />}
+      {tabIndex === 2 && <AttendanceReport attendance={filteredAttendance} />}
+      {tabIndex === 3 && <DividendReport dividends={filteredDividends} />}
     </Box>
   );
 };

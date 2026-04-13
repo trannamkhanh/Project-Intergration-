@@ -23,6 +23,10 @@ import {
   IconButton,
   Tooltip,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -43,7 +47,11 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
 } from "recharts";
-import { payrollService } from "../../services/api";
+import {
+  payrollService,
+  employeeService,
+  departmentService,
+} from "../../services/api";
 
 const formatVND = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " \u20AB";
@@ -59,9 +67,13 @@ const emptyForm = {
 
 const PayrollPage = () => {
   const [salaries, setSalaries] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [monthFilter, setMonthFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [employeeFilter, setEmployeeFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -79,8 +91,14 @@ const PayrollPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await payrollService.getAll();
-        setSalaries(res.data);
+        const [salaryRes, employeeRes, departmentRes] = await Promise.all([
+          payrollService.getAll(),
+          employeeService.getAll(),
+          departmentService.getAll(),
+        ]);
+        setSalaries(salaryRes.data);
+        setEmployees(employeeRes.data);
+        setDepartments(departmentRes.data);
       } catch (error) {
         console.error("Lỗi khi tải dữ liệu lương:", error);
       } finally {
@@ -91,16 +109,37 @@ const PayrollPage = () => {
   }, []);
 
   const filteredSalaries = useMemo(() => {
+    const employeeDepartmentMap = employees.reduce((acc, employee) => {
+      acc[employee.EmployeeID] = employee.DepartmentID;
+      return acc;
+    }, {});
+
     return salaries.filter((salary) => {
-      const matchesMonth = monthFilter
-        ? salary.SalaryMonth === monthFilter
-        : true;
+      const salaryMonth = (salary.SalaryMonth || "").slice(0, 7);
+      const matchesMonth = monthFilter ? salaryMonth === monthFilter : true;
       const matchesSearch = searchQuery
         ? salary.EmployeeName?.toLowerCase().includes(searchQuery.toLowerCase())
         : true;
-      return matchesMonth && matchesSearch;
+      const matchesEmployee = employeeFilter
+        ? String(salary.EmployeeID) === employeeFilter
+        : true;
+      const matchesDepartment = departmentFilter
+        ? String(employeeDepartmentMap[salary.EmployeeID] || "") ===
+          departmentFilter
+        : true;
+
+      return (
+        matchesMonth && matchesSearch && matchesEmployee && matchesDepartment
+      );
     });
-  }, [salaries, monthFilter, searchQuery]);
+  }, [
+    salaries,
+    monthFilter,
+    searchQuery,
+    employeeFilter,
+    departmentFilter,
+    employees,
+  ]);
 
   const summaryStats = useMemo(() => {
     const totalPayroll = filteredSalaries.reduce(
@@ -344,6 +383,52 @@ const PayrollPage = () => {
                 ),
               }}
             />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Nhân viên</InputLabel>
+              <Select
+                value={employeeFilter}
+                label="Nhân viên"
+                onChange={(e) => {
+                  setEmployeeFilter(e.target.value);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                {employees.map((employee) => (
+                  <MenuItem
+                    key={employee.EmployeeID}
+                    value={String(employee.EmployeeID)}
+                  >
+                    {employee.FullName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Phòng ban</InputLabel>
+              <Select
+                value={departmentFilter}
+                label="Phòng ban"
+                onChange={(e) => {
+                  setDepartmentFilter(e.target.value);
+                  setPage(0);
+                }}
+              >
+                <MenuItem value="">Tất cả</MenuItem>
+                {departments.map((department) => (
+                  <MenuItem
+                    key={department.DepartmentID}
+                    value={String(department.DepartmentID)}
+                  >
+                    {department.DepartmentName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
           <Grid size={{ xs: 12, sm: 12, md: 4 }}>
             <Chip
