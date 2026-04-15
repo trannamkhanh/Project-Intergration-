@@ -343,6 +343,42 @@ def get_employees():
     return jsonify(result)
 
 
+@api.route("/employees/search", methods=["GET"])
+def search_employees():
+    query = request.args.get("q", "").strip()
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT e.*, d.DepartmentName, p.PositionName
+        FROM Employees e
+        LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+        LEFT JOIN Positions p ON e.PositionID = p.PositionID
+        WHERE e.FullName LIKE ? OR e.Email LIKE ?
+        ORDER BY e.EmployeeID
+    """, f"%{query}%", f"%{query}%")
+    result = rows_to_list(cursor, cursor.fetchall())
+    conn.close()
+    return jsonify(result)
+
+
+@api.route("/employees/<int:id>", methods=["GET"])
+def get_employee_by_id(id):
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT e.*, d.DepartmentName, p.PositionName
+        FROM Employees e
+        LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+        LEFT JOIN Positions p ON e.PositionID = p.PositionID
+        WHERE e.EmployeeID = ?
+    """, id)
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Nhan vien khong ton tai"}), 404
+    return jsonify(row_to_dict(cursor, row))
+
+
 @api.route("/employees", methods=["POST"])
 def create_employee():
     data = request.get_json()
@@ -476,6 +512,23 @@ def get_departments():
     return jsonify(result)
 
 
+@api.route("/departments/<int:id>", methods=["GET"])
+def get_department_by_id(id):
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT d.*,
+            (SELECT COUNT(*) FROM Employees e WHERE e.DepartmentID = d.DepartmentID) AS EmployeeCount
+        FROM Departments d
+        WHERE d.DepartmentID = ?
+    """, id)
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Phong ban khong ton tai"}), 404
+    return jsonify(row_to_dict(cursor, row))
+
+
 @api.route("/departments", methods=["POST"])
 def create_department():
     data = request.get_json()
@@ -575,6 +628,18 @@ def get_positions():
     return jsonify(result)
 
 
+@api.route("/positions/<int:id>", methods=["GET"])
+def get_position_by_id(id):
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Positions WHERE PositionID = ?", id)
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Chuc vu khong ton tai"}), 404
+    return jsonify(row_to_dict(cursor, row))
+
+
 @api.route("/positions", methods=["POST"])
 def create_position():
     data = request.get_json()
@@ -671,6 +736,22 @@ def get_dividends():
     return jsonify(result)
 
 
+@api.route("/dividends/employee/<int:employee_id>", methods=["GET"])
+def get_dividends_by_employee(employee_id):
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT d.*, e.FullName AS EmployeeName
+        FROM Dividends d
+        LEFT JOIN Employees e ON d.EmployeeID = e.EmployeeID
+        WHERE d.EmployeeID = ?
+        ORDER BY d.DividendDate
+    """, employee_id)
+    result = rows_to_list(cursor, cursor.fetchall())
+    conn.close()
+    return jsonify(result)
+
+
 @api.route("/dividends", methods=["POST"])
 def create_dividend():
     data = request.get_json()
@@ -740,6 +821,24 @@ def get_salaries():
         LEFT JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
         ORDER BY s.SalaryID
     """)
+    result = cursor.fetchall()
+    conn.close()
+    for row in result:
+        convert_mysql_row(row)
+    return jsonify(result)
+
+
+@api.route("/payroll/employee/<int:employee_id>", methods=["GET"])
+def get_salaries_by_employee(employee_id):
+    conn = get_mysql_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT s.*, ep.FullName AS EmployeeName
+        FROM salaries s
+        LEFT JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
+        WHERE s.EmployeeID = %s
+        ORDER BY s.SalaryMonth
+    """, (employee_id,))
     result = cursor.fetchall()
     conn.close()
     for row in result:
@@ -820,6 +919,25 @@ def get_attendance():
         LEFT JOIN employees_payroll ep ON a.EmployeeID = ep.EmployeeID
         ORDER BY a.AttendanceID
     """)
+    result = cursor.fetchall()
+    conn.close()
+    for row in result:
+        convert_mysql_row(row)
+    return jsonify(result)
+
+
+@api.route("/attendance/employee/<int:employee_id>", methods=["GET"])
+def get_attendance_by_employee(employee_id):
+    conn = get_mysql_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT a.AttendanceID, a.EmployeeID, a.WorkDays, a.AbsentDays, a.LeaveDays,
+               a.AttendanceMonth AS Month, ep.FullName AS EmployeeName
+        FROM attendance a
+        LEFT JOIN employees_payroll ep ON a.EmployeeID = ep.EmployeeID
+        WHERE a.EmployeeID = %s
+        ORDER BY a.AttendanceMonth
+    """, (employee_id,))
     result = cursor.fetchall()
     conn.close()
     for row in result:
@@ -984,3 +1102,73 @@ def get_dashboard_stats():
         "monthlySalaryTrend": salary_trend,
         "attendanceSummary": attendance_summary,
     })
+
+
+@api.route("/reports/hr", methods=["GET"])
+def get_hr_report():
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DepartmentName, COUNT(*) AS EmployeeCount FROM Employees e JOIN Departments d ON e.DepartmentID = d.DepartmentID GROUP BY DepartmentName")
+    departments = rows_to_list(cursor, cursor.fetchall())
+    cursor.execute("SELECT Status, COUNT(*) AS Count FROM Employees GROUP BY Status")
+    status = rows_to_list(cursor, cursor.fetchall())
+    cursor.execute("SELECT Gender, COUNT(*) AS Count FROM Employees GROUP BY Gender")
+    gender = rows_to_list(cursor, cursor.fetchall())
+    conn.close()
+    return jsonify({
+        "departments": departments,
+        "status": status,
+        "gender": gender,
+    })
+
+
+@api.route("/reports/payroll", methods=["GET"])
+def get_payroll_report():
+    conn = get_mysql_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DATE_FORMAT(SalaryMonth, '%Y-%m') AS Month, SUM(NetSalary) AS TotalNetSalary FROM salaries GROUP BY SalaryMonth ORDER BY SalaryMonth")
+    monthly = [
+        {"month": row["Month"], "totalNetSalary": float(row["TotalNetSalary"])}
+        for row in cursor.fetchall()
+    ]
+    cursor.execute("SELECT COALESCE(SUM(NetSalary),0) AS TotalPayroll, AVG(NetSalary) AS AverageSalary FROM salaries")
+    summary = cursor.fetchone()
+    conn.close()
+    return jsonify({
+        "monthly": monthly,
+        "summary": {
+            "totalPayroll": float(summary["TotalPayroll"]),
+            "averageSalary": float(summary["AverageSalary"] or 0),
+        },
+    })
+
+
+@api.route("/reports/attendance", methods=["GET"])
+def get_attendance_report():
+    conn = get_mysql_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DATE_FORMAT(AttendanceMonth, '%Y-%m') AS Month, SUM(WorkDays) AS TotalWorkDays, SUM(AbsentDays) AS TotalAbsentDays, SUM(LeaveDays) AS TotalLeaveDays FROM attendance GROUP BY AttendanceMonth ORDER BY AttendanceMonth")
+    data = [
+        {
+            "month": row["Month"],
+            "totalWorkDays": int(row["TotalWorkDays"] or 0),
+            "totalAbsentDays": int(row["TotalAbsentDays"] or 0),
+            "totalLeaveDays": int(row["TotalLeaveDays"] or 0),
+        }
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+    return jsonify({"monthly": data})
+
+
+@api.route("/reports/dividends", methods=["GET"])
+def get_dividend_report():
+    conn = get_sqlserver_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DATEPART(YEAR, DividendDate) AS Year, DATEPART(MONTH, DividendDate) AS Month, SUM(DividendAmount) AS TotalAmount FROM Dividends GROUP BY DATEPART(YEAR, DividendDate), DATEPART(MONTH, DividendDate) ORDER BY Year, Month")
+    monthly = [
+        {"year": row["Year"], "month": row["Month"], "totalAmount": float(row["TotalAmount"])}
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+    return jsonify({"monthly": monthly})
