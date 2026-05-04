@@ -4,6 +4,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { SnackbarProvider } from "notistack";
 import theme from "./utils/theme";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AlertProvider } from "./contexts/AlertContext";
 import MainLayout from "./components/layout/MainLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
@@ -15,10 +16,18 @@ import AttendancePage from "./pages/attendance/AttendancePage";
 import ReportsPage from "./pages/reports/ReportsPage";
 import DividendsPage from "./pages/dividends/DividendsPage";
 import AlertsPage from "./pages/alerts/AlertsPage";
+import RbacManagement from "./pages/rbac/RbacManagement";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function RoleRoute({ children, role }) {
+  const { isAuthenticated, hasRole } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!hasRole(role)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -37,6 +46,7 @@ function App() {
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
         <AuthProvider>
+          <AlertProvider>
           <BrowserRouter>
             <Routes>
               <Route
@@ -58,15 +68,17 @@ function App() {
                 <Route path="/employees" element={<EmployeesPage />} />
                 <Route path="/departments" element={<DepartmentsPage />} />
                 <Route path="/positions" element={<PositionsPage />} />
-                <Route path="/payroll" element={<PayrollPage />} />
+                <Route path="/payroll" element={<RoleRoute role="Admin"><PayrollPage /></RoleRoute>} />
                 <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/dividends" element={<DividendsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/dividends" element={<RoleRoute role="Admin"><DividendsPage /></RoleRoute>} />
+                <Route path="/reports" element={<RoleRoute role="Admin"><ReportsPage /></RoleRoute>} />
                 <Route path="/alerts" element={<AlertsPage />} />
+                <Route path="/rbac" element={<RoleRoute role="Admin"><RbacManagement /></RoleRoute>} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
+          </AlertProvider>
         </AuthProvider>
       </SnackbarProvider>
     </ThemeProvider>

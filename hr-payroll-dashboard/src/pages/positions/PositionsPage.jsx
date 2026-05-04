@@ -42,7 +42,7 @@ const PositionsPage = () => {
         const res = await positionService.getAll();
         setPositions(res.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu chuc vu:", error);
+        console.error("Lỗi khi tải dữ liệu chức vụ:", error);
       } finally {
         setLoading(false);
       }
@@ -95,44 +95,45 @@ const PositionsPage = () => {
   const validate = () => {
     const errors = {};
     if (!formData.PositionName.trim()) {
-      errors.PositionName = "Ten chuc vu la bat buoc";
+      errors.PositionName = "Tên chức vụ là bắt buộc";
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
 
-    if (editingPosition) {
-      setPositions((prev) =>
-        prev.map((pos) =>
-          pos.PositionID === editingPosition.PositionID
-            ? { ...pos, ...formData }
-            : pos,
-        ),
-      );
-    } else {
-      const newId =
-        positions.length > 0
-          ? Math.max(...positions.map((p) => p.PositionID)) + 1
-          : 1;
-      const newPosition = {
-        PositionID: newId,
-        PositionName: formData.PositionName.trim(),
-        Description: formData.Description.trim(),
-      };
-      setPositions((prev) => [...prev, newPosition]);
+    try {
+      if (editingPosition) {
+        const res = await positionService.update(editingPosition.PositionID, formData);
+        setPositions((prev) =>
+          prev.map((pos) =>
+            pos.PositionID === editingPosition.PositionID ? res.data : pos,
+          ),
+        );
+      } else {
+        const res = await positionService.create(formData);
+        setPositions((prev) => [...prev, res.data]);
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Lỗi khi lưu chức vụ:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi lưu chức vụ");
     }
-
-    handleCloseDialog();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingPosition) {
-      setPositions((prev) =>
-        prev.filter((pos) => pos.PositionID !== deletingPosition.PositionID),
-      );
+      try {
+        await positionService.delete(deletingPosition.PositionID);
+        setPositions((prev) =>
+          prev.filter((pos) => pos.PositionID !== deletingPosition.PositionID),
+        );
+      } catch (error) {
+        console.error("Lỗi khi xóa chức vụ:", error);
+        alert(error.response?.data?.error || "Có lỗi xảy ra khi xóa chức vụ");
+      }
     }
     handleCloseDelete();
   };
@@ -148,7 +149,7 @@ const PositionsPage = () => {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -166,7 +167,7 @@ const PositionsPage = () => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <WorkOutline sx={{ fontSize: 32, color: "primary.main" }} />
           <Typography variant="h4" fontWeight={700}>
-            Chuc vu
+            Chức vụ
           </Typography>
         </Box>
         <Button
@@ -175,7 +176,7 @@ const PositionsPage = () => {
           onClick={handleOpenAdd}
           sx={{ px: 3, py: 1 }}
         >
-          Them chuc vu
+          Thêm chức vụ
         </Button>
       </Box>
 
@@ -188,10 +189,10 @@ const PositionsPage = () => {
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 80 }}>ID</TableCell>
-              <TableCell>Ten chuc vu</TableCell>
-              <TableCell>Mo ta</TableCell>
+              <TableCell>Tên chức vụ</TableCell>
+              <TableCell>Mô tả</TableCell>
               <TableCell align="right" sx={{ width: 120 }}>
-                Thao tac
+                Thao tác
               </TableCell>
             </TableRow>
           </TableHead>
@@ -219,7 +220,7 @@ const PositionsPage = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Sua">
+                    <Tooltip title="Sửa">
                       <IconButton
                         size="small"
                         color="primary"
@@ -228,7 +229,7 @@ const PositionsPage = () => {
                         <Edit fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Xoa">
+                    <Tooltip title="Xóa">
                       <IconButton
                         size="small"
                         color="error"
@@ -247,14 +248,14 @@ const PositionsPage = () => {
                     sx={{ fontSize: 48, color: "text.disabled", mb: 1 }}
                   />
                   <Typography variant="body1" color="text.secondary">
-                    Khong tim thay chuc vu nao
+                    Không tìm thấy chức vụ nào
                   </Typography>
                   <Typography
                     variant="body2"
                     color="text.disabled"
                     sx={{ mb: 2 }}
                   >
-                    Hay bat dau bang cach them chuc vu dau tien
+                    Hãy bắt đầu bằng cách thêm chức vụ đầu tiên
                   </Typography>
                   <Button
                     variant="contained"
@@ -262,7 +263,7 @@ const PositionsPage = () => {
                     onClick={handleOpenAdd}
                     size="small"
                   >
-                    Them chuc vu
+                    Thêm chức vụ
                   </Button>
                 </TableCell>
               </TableRow>
@@ -278,14 +279,14 @@ const PositionsPage = () => {
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700 }}>
-          {editingPosition ? "Sua chuc vu" : "Them chuc vu"}
+          {editingPosition ? "Sửa chức vụ" : "Thêm chức vụ"}
         </DialogTitle>
         <DialogContent dividers>
           <Box
             sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}
           >
             <TextField
-              label="Ten chuc vu"
+              label="Tên chức vụ"
               name="PositionName"
               value={formData.PositionName}
               onChange={handleChange}
@@ -296,7 +297,7 @@ const PositionsPage = () => {
               autoFocus
             />
             <TextField
-              label="Mo ta"
+              label="Mô tả"
               name="Description"
               value={formData.Description}
               onChange={handleChange}
@@ -310,10 +311,10 @@ const PositionsPage = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDialog} color="inherit">
-            Huy
+            Hủy
           </Button>
           <Button onClick={handleSave} variant="contained">
-            {editingPosition ? "Cap nhat" : "Tao moi"}
+            {editingPosition ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -324,20 +325,20 @@ const PositionsPage = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Xoa chuc vu</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Xóa chức vụ</DialogTitle>
         <DialogContent>
           <Typography sx={{ mt: 1 }}>
-            Ban co chac chan muon xoa chuc vu "
-            <strong>{deletingPosition?.PositionName}</strong>"? Hanh dong nay
-            khong the hoan tac.
+            Bạn có chắc chắn muốn xóa chức vụ "
+            <strong>{deletingPosition?.PositionName}</strong>"? Hành động này
+            không thể hoàn tác.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDelete} color="inherit">
-            Huy
+            Hủy
           </Button>
           <Button onClick={handleDelete} variant="contained" color="error">
-            Xoa
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>

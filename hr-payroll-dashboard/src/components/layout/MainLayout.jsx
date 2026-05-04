@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -35,23 +35,14 @@ import {
   Logout as LogoutIcon,
   AccountCircle as AccountIcon,
   ChevronLeft as ChevronLeftIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthContext";
+import { useAlerts } from "../../contexts/AlertContext";
 
 const DRAWER_WIDTH = 260;
 const DRAWER_COLLAPSED = 72;
 
-const menuItems = [
-  { text: "Tong quan", icon: <DashboardIcon />, path: "/" },
-  { text: "Nhan vien", icon: <PeopleIcon />, path: "/employees" },
-  { text: "Phong ban", icon: <BusinessIcon />, path: "/departments" },
-  { text: "Chuc vu", icon: <WorkIcon />, path: "/positions" },
-  { text: "Bang luong", icon: <PayrollIcon />, path: "/payroll" },
-  { text: "Cham cong", icon: <AttendanceIcon />, path: "/attendance" },
-  { text: "Co tuc", icon: <DividendsIcon />, path: "/dividends" },
-  { text: "Bao cao", icon: <ReportsIcon />, path: "/reports" },
-  { text: "Canh bao", icon: <NotificationsIcon />, path: "/alerts" },
-];
 
 export default function MainLayout() {
   const theme = useTheme();
@@ -60,7 +51,32 @@ export default function MainLayout() {
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
+  const { unreadCount } = useAlerts();
+
+  // Define menu items with conditional admin link
+  const menuItems = useMemo(() => {
+    const items = [
+      { text: "Tổng quan", icon: <DashboardIcon />, path: "/" },
+      { text: "Nhân viên", icon: <PeopleIcon />, path: "/employees" },
+      { text: "Phòng ban", icon: <BusinessIcon />, path: "/departments" },
+      { text: "Chức vụ", icon: <WorkIcon />, path: "/positions" },
+      { text: "Bảng lương", icon: <PayrollIcon />, path: "/payroll" },
+      { text: "Chấm công", icon: <AttendanceIcon />, path: "/attendance" },
+      { text: "Cổ tức", icon: <DividendsIcon />, path: "/dividends" },
+      { text: "Báo cáo", icon: <ReportsIcon />, path: "/reports" },
+      { text: "Cảnh báo", icon: <NotificationsIcon />, path: "/alerts" },
+    ];
+    // Add RBAC link only for Admin
+    if (user && hasRole("Admin")) {
+      items.push({
+        text: "Phân quyền",
+        icon: <AdminPanelSettingsIcon />,
+        path: "/rbac",
+      });
+    }
+    return items;
+  }, [user, hasRole]);
 
   const handleDrawerToggle = () => setDrawerOpen(!drawerOpen);
   const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
@@ -91,7 +107,7 @@ export default function MainLayout() {
             noWrap
             sx={{ color: "primary.main", fontWeight: 800 }}
           >
-            HR Quan ly
+            HR Quản lý
           </Typography>
         )}
         {!isMobile && (
@@ -138,8 +154,8 @@ export default function MainLayout() {
                       justifyContent: "center",
                     }}
                   >
-                    {item.text === "Alerts" ? (
-                      <Badge badgeContent={4} color="error">
+                    {item.text === "Cảnh báo" ? (
+                      <Badge badgeContent={unreadCount} color="error">
                         {item.icon}
                       </Badge>
                     ) : (
@@ -238,18 +254,18 @@ export default function MainLayout() {
                   item.path === location.pathname ||
                   (item.path !== "/" &&
                     location.pathname.startsWith(item.path)),
-              )?.text || "Tong quan"}
+              )?.text || "Tổng quan"}
             </Typography>
 
-            <Tooltip title="Thong bao">
+            <Tooltip title="Thông báo">
               <IconButton onClick={() => navigate("/alerts")} sx={{ mr: 1 }}>
-                <Badge badgeContent={4} color="error">
+                <Badge badgeContent={unreadCount} color="error">
                   <NotificationsIcon />
                 </Badge>
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Tai khoan">
+            <Tooltip title="Tài khoản">
               <IconButton onClick={handleMenuOpen}>
                 <Avatar
                   sx={{
@@ -275,7 +291,7 @@ export default function MainLayout() {
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>
-                <LogoutIcon sx={{ mr: 1 }} /> Dang xuat
+                <LogoutIcon sx={{ mr: 1 }} /> Đăng xuất
               </MenuItem>
             </Menu>
           </Toolbar>

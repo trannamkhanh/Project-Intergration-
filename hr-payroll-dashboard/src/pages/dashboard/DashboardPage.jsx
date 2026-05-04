@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import Grid from "@mui/material/Grid";
 import {
   Card,
@@ -11,6 +12,7 @@ import {
   TableHead,
   TableRow,
   Paper,
+  CircularProgress,
 } from "@mui/material";
 import {
   People,
@@ -18,43 +20,94 @@ import {
   Business,
   AttachMoney,
 } from "@mui/icons-material";
-import { mockDashboardStats, mockDepartments } from "../../services/mockData";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LineChart,
+  Line,
+} from "recharts";
+import { reportService } from "../../services/api";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " VND";
 
-const statsCards = [
-  {
-    title: "Total Employees",
-    value: mockDashboardStats.totalEmployees,
-    icon: <People sx={{ fontSize: 40 }} />,
-    color: "#1565c0",
-  },
-  {
-    title: "Active Employees",
-    value: mockDashboardStats.activeEmployees,
-    icon: <CheckCircle sx={{ fontSize: 40 }} />,
-    color: "#2e7d32",
-  },
-  {
-    title: "Total Departments",
-    value: mockDashboardStats.totalDepartments,
-    icon: <Business sx={{ fontSize: 40 }} />,
-    color: "#7b1fa2",
-  },
-  {
-    title: "Total Payroll",
-    value: formatCurrency(mockDashboardStats.totalPayroll),
-    icon: <AttachMoney sx={{ fontSize: 40 }} />,
-    color: "#ed6c02",
-  },
-];
+const PIE_COLORS = ["#1565c0", "#2e7d32", "#7b1fa2", "#ed6c02", "#00838f"];
 
 const DashboardPage = () => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await reportService.getDashboardStats();
+        setStats(res.data);
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
+      </Box>
+    );
+  }
+
+  const statsCards = [
+    {
+      title: "Tổng nhân viên",
+      value: stats.totalEmployees,
+      icon: <People sx={{ fontSize: 40 }} />,
+      color: "#1565c0",
+    },
+    {
+      title: "Đang làm việc",
+      value: stats.activeEmployees,
+      icon: <CheckCircle sx={{ fontSize: 40 }} />,
+      color: "#2e7d32",
+    },
+    {
+      title: "Phòng ban",
+      value: stats.totalDepartments,
+      icon: <Business sx={{ fontSize: 40 }} />,
+      color: "#7b1fa2",
+    },
+    {
+      title: "Tổng lương",
+      value: formatCurrency(stats.totalPayroll),
+      icon: <AttachMoney sx={{ fontSize: 40 }} />,
+      color: "#ed6c02",
+    },
+  ];
+
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Dashboard Overview
+        Tổng quan
       </Typography>
 
       {/* Stats Cards */}
@@ -108,30 +161,34 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Department Distribution
+                Phân bổ phòng ban
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Employees
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {mockDepartments.map((dept) => (
-                      <TableRow key={dept.DepartmentID} hover>
-                        <TableCell>{dept.DepartmentName}</TableCell>
-                        <TableCell align="right">
-                          {dept.EmployeeCount}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={stats.departmentDistribution || []}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={110}
+                      label
+                    >
+                      {(stats.departmentDistribution || []).map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -141,30 +198,32 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Monthly Salary Trend
+                Xu hướng lương hàng tháng
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Month</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Total Salary
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {mockDashboardStats.monthlySalaryTrend.map((item) => (
-                      <TableRow key={item.month} hover>
-                        <TableCell>{item.month}</TableCell>
-                        <TableCell align="right">
-                          {formatCurrency(item.total)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <LineChart data={stats.monthlySalaryTrend || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <RechartsTooltip
+                      formatter={(value) => [
+                        formatCurrency(value),
+                        "Tổng lương",
+                      ]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      name="Tổng lương"
+                      stroke="#ed6c02"
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -176,28 +235,26 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Status Distribution
+                Phân bổ trạng thái
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Count
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {mockDashboardStats.statusDistribution.map((item) => (
-                      <TableRow key={item.name} hover>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell align="right">{item.value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <BarChart data={stats.statusDistribution || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                    />
+                    <Bar
+                      dataKey="value"
+                      name="Số lượng"
+                      fill="#2e7d32"
+                      radius={[6, 6, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -206,28 +263,33 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Gender Distribution
+                Phân bổ giới tính
               </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Gender</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Count
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {mockDashboardStats.genderDistribution.map((item) => (
-                      <TableRow key={item.name} hover>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell align="right">{item.value}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <Box sx={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={stats.genderDistribution || []}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      label
+                    >
+                      {(stats.genderDistribution || []).map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -236,35 +298,38 @@ const DashboardPage = () => {
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Attendance Summary
+                Tổng hợp chấm công
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Loại</TableCell>
                       <TableCell sx={{ fontWeight: 700 }} align="right">
-                        Days
+                        Số ngày
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     <TableRow hover>
-                      <TableCell>Work Days</TableCell>
+                      <TableCell>Ngày làm việc</TableCell>
                       <TableCell align="right">
-                        {mockDashboardStats.attendanceSummary.totalWorkDays}
+                        {stats.attendanceSummary?.totalWorkDays || 0}
                       </TableCell>
                     </TableRow>
                     <TableRow hover>
-                      <TableCell>Leave Days</TableCell>
+                      <TableCell>Ngày nghỉ phép</TableCell>
                       <TableCell align="right">
-                        {mockDashboardStats.attendanceSummary.totalLeaveDays}
+                        {stats.attendanceSummary?.totalLeaveDays || 0}
                       </TableCell>
                     </TableRow>
                     <TableRow hover>
-                      <TableCell>Absent Days</TableCell>
-                      <TableCell align="right" sx={{ color: "#d32f2f", fontWeight: 600 }}>
-                        {mockDashboardStats.attendanceSummary.totalAbsentDays}
+                      <TableCell>Ngày vắng mặt</TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ color: "#d32f2f", fontWeight: 600 }}
+                      >
+                        {stats.attendanceSummary?.totalAbsentDays || 0}
                       </TableCell>
                     </TableRow>
                   </TableBody>

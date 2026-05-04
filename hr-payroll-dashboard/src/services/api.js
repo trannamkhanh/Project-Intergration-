@@ -1,7 +1,10 @@
 import axios from "axios";
 
+const runtimeHost =
+  typeof window !== "undefined" ? window.location.hostname : "localhost";
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL || `http://${runtimeHost}:5000/api`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -77,6 +80,7 @@ export const payrollService = {
     api.get(`/payroll/employee/${employeeId}`, { params }),
   create: (data) => api.post("/payroll", data),
   update: (id, data) => api.put(`/payroll/${id}`, data),
+  delete: (id) => api.delete(`/payroll/${id}`),
 };
 
 // ============ ATTENDANCE ============
@@ -86,12 +90,16 @@ export const attendanceService = {
     api.get(`/attendance/employee/${employeeId}`, { params }),
   create: (data) => api.post("/attendance", data),
   update: (id, data) => api.put(`/attendance/${id}`, data),
+  delete: (id) => api.delete(`/attendance/${id}`),
 };
 
 // ============ DIVIDENDS ============
 export const dividendService = {
   getAll: (params) => api.get("/dividends", { params }),
   getByEmployee: (employeeId) => api.get(`/dividends/employee/${employeeId}`),
+  create: (data) => api.post("/dividends", data),
+  update: (id, data) => api.put(`/dividends/${id}`, data),
+  delete: (id) => api.delete(`/dividends/${id}`),
 };
 
 // ============ REPORTS ============
@@ -110,6 +118,31 @@ export const alertService = {
   getLeaveExceeded: () => api.get("/alerts/leave-exceeded"),
   getSalaryDiscrepancies: () => api.get("/alerts/salary-discrepancies"),
   markRead: (id) => api.put(`/alerts/${id}/read`),
+};
+
+// ============ RBAC ============
+export const rbacService = {
+  // Roles
+  getRoles: () => api.get("/rbac/roles"),
+  createRole: (data) => api.post("/rbac/roles", data),
+  updateRole: (id, data) => api.put(`/rbac/roles/${id}`, data),
+  deleteRole: (id) => api.delete(`/rbac/roles/${id}`),
+  // Permissions
+  getPermissions: () => api.get("/rbac/permissions"),
+  createPermission: (data) => api.post("/rbac/permissions", data),
+  updatePermission: (id, data) => api.put(`/rbac/permissions/${id}`, data),
+  deletePermission: (id) => api.delete(`/rbac/permissions/${id}`),
+  // User Roles
+  getUserRoles: () => api.get("/rbac/user-roles"),
+  assignUserRole: (data) => api.post("/rbac/user-roles", data),
+  removeUserRole: (data) => api.delete("/rbac/user-roles", { data }),
+  // Role Permissions
+  getRolePermissions: () => api.get("/rbac/role-permissions"),
+  assignPermissionToRole: (data) => api.post("/rbac/role-permissions", data),
+  removePermissionFromRole: (data) => api.delete("/rbac/role-permissions", { data }),
+  // Aggregated views
+  getUsersWithRoles: () => api.get("/rbac/users-with-roles"),
+  getRolesWithPermissions: () => api.get("/rbac/roles-with-permissions"),
 };
 
 export default api;

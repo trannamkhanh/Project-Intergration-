@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -9,8 +9,7 @@ import {
   IconButton,
   Badge,
   Tooltip,
-  Divider,
-  Alert as MuiAlert,
+  CircularProgress,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
@@ -24,7 +23,7 @@ import {
   Warning,
   CheckCircle,
 } from "@mui/icons-material";
-import { mockAlerts } from "../../services/mockData";
+import { useAlerts } from "../../contexts/AlertContext";
 
 const severityColorMap = {
   info: "#1565c0",
@@ -45,17 +44,23 @@ const typeIconMap = {
 };
 
 const typeLabelMap = {
-  anniversary: "Anniversary",
-  leave: "Leave",
-  salary: "Salary",
+  anniversary: "Kỷ niệm",
+  leave: "Nghỉ phép",
+  salary: "Lương",
 };
 
-const filterOptions = ["All", "Anniversary", "Leave", "Salary"];
+const filterOptions = ["Tất cả", "Kỷ niệm", "Nghỉ phép", "Lương"];
+const filterMap = {
+  "Tất cả": "all",
+  "Kỷ niệm": "anniversary",
+  "Nghỉ phép": "leave",
+  Lương: "salary",
+};
 
-function formatDate(dateStr) {
+function formatDateVN(dateStr) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -63,59 +68,57 @@ function formatDate(dateStr) {
 }
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState(mockAlerts);
-  const [activeFilter, setActiveFilter] = useState("All");
+  const { alerts, loading, unreadCount, markAsRead, markAllRead, deleteAlert } = useAlerts();
+  const [activeFilter, setActiveFilter] = useState("Tất cả");
 
-  // --- Derived data ---
   const filteredAlerts = useMemo(() => {
-    if (activeFilter === "All") return alerts;
-    return alerts.filter((alert) => alert.type === activeFilter.toLowerCase());
+    const type = filterMap[activeFilter];
+    if (type === "all") return alerts;
+    return alerts.filter((alert) => alert.type === type);
   }, [alerts, activeFilter]);
 
   const totalCount = alerts.length;
-  const unreadCount = alerts.filter((a) => !a.read).length;
   const criticalCount = alerts.filter((a) => a.severity === "error").length;
 
-  // --- Handlers ---
-  const handleMarkAsRead = (id) => {
-    setAlerts((prev) =>
-      prev.map((alert) => (alert.id === id ? { ...alert, read: true } : alert)),
-    );
-  };
-
-  const handleMarkAllRead = () => {
-    setAlerts((prev) => prev.map((alert) => ({ ...alert, read: true })));
-  };
-
-  const handleDelete = (id) => {
-    setAlerts((prev) => prev.filter((alert) => alert.id !== id));
-  };
-
-  // --- Summary cards config ---
   const summaryCards = [
     {
-      title: "Total Alerts",
+      title: "Tổng cảnh báo",
       value: totalCount,
       icon: <Notifications sx={{ fontSize: 36 }} />,
       color: "#1565c0",
     },
     {
-      title: "Unread",
+      title: "Chưa đọc",
       value: unreadCount,
       icon: <NotificationsActive sx={{ fontSize: 36 }} />,
       color: "#ed6c02",
     },
     {
-      title: "Critical",
+      title: "Nghiêm trọng",
       value: criticalCount,
       icon: <Warning sx={{ fontSize: 36 }} />,
       color: "#d32f2f",
     },
   ];
 
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      {/* ---- Header ---- */}
       <Box
         sx={{
           display: "flex",
@@ -124,18 +127,17 @@ export default function AlertsPage() {
           mb: 3,
         }}
       >
-        <Typography variant="h4">Alerts & Notifications</Typography>
+        <Typography variant="h4">Cảnh báo & Thông báo</Typography>
         <Button
           variant="contained"
           startIcon={<MarkEmailRead />}
-          onClick={handleMarkAllRead}
+          onClick={markAllRead}
           disabled={unreadCount === 0}
         >
-          Mark All Read
+          Đánh dấu tất cả đã đọc
         </Button>
       </Box>
 
-      {/* ---- Filter Chips ---- */}
       <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
         {filterOptions.map((filter) => (
           <Chip
@@ -149,16 +151,12 @@ export default function AlertsPage() {
         ))}
       </Box>
 
-      {/* ---- Summary Cards ---- */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
           <Grid key={card.title} size={{ xs: 12, sm: 4 }}>
             <Card
               elevation={3}
-              sx={{
-                borderRadius: 2,
-                borderTop: `4px solid ${card.color}`,
-              }}
+              sx={{ borderRadius: 2, borderTop: `4px solid ${card.color}` }}
             >
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -194,7 +192,6 @@ export default function AlertsPage() {
         ))}
       </Grid>
 
-      {/* ---- Alerts List ---- */}
       {filteredAlerts.length === 0 ? (
         <Card elevation={3} sx={{ borderRadius: 2 }}>
           <CardContent
@@ -207,12 +204,12 @@ export default function AlertsPage() {
           >
             <CheckCircle sx={{ fontSize: 64, color: "success.main", mb: 2 }} />
             <Typography variant="h6" sx={{ color: "text.secondary" }}>
-              No alerts to display
+              Không có cảnh báo nào
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {activeFilter !== "All"
-                ? `There are no ${activeFilter.toLowerCase()} alerts at this time.`
-                : "All caught up! There are no alerts at this time."}
+              {activeFilter !== "Tất cả"
+                ? `Không có cảnh báo loại "${activeFilter}" vào lúc này.`
+                : "Không có cảnh báo nào vào lúc này."}
             </Typography>
           </CardContent>
         </Card>
@@ -221,7 +218,6 @@ export default function AlertsPage() {
           {filteredAlerts.map((alert) => {
             const severityColor = severityColorMap[alert.severity];
             const severityBg = severityBgMap[alert.severity];
-
             return (
               <Card
                 key={alert.id}
@@ -232,7 +228,6 @@ export default function AlertsPage() {
                   opacity: alert.read ? 0.85 : 1,
                   transition: "all 0.2s ease-in-out",
                   "&:hover": {
-                    elevation: 4,
                     transform: "translateY(-1px)",
                     boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                   },
@@ -240,13 +235,8 @@ export default function AlertsPage() {
               >
                 <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
                   <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 2,
-                    }}
+                    sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}
                   >
-                    {/* Alert Icon */}
                     <Badge
                       variant="dot"
                       invisible={alert.read}
@@ -268,8 +258,6 @@ export default function AlertsPage() {
                         {typeIconMap[alert.type]}
                       </Box>
                     </Badge>
-
-                    {/* Alert Content */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Box
                         sx={{
@@ -281,9 +269,7 @@ export default function AlertsPage() {
                       >
                         <Typography
                           variant="subtitle1"
-                          sx={{
-                            fontWeight: alert.read ? 500 : 700,
-                          }}
+                          sx={{ fontWeight: alert.read ? 500 : 700 }}
                         >
                           {alert.title}
                         </Typography>
@@ -300,7 +286,7 @@ export default function AlertsPage() {
                         />
                         {!alert.read && (
                           <Chip
-                            label="NEW"
+                            label="MỚI"
                             size="small"
                             color="error"
                             sx={{
@@ -325,11 +311,9 @@ export default function AlertsPage() {
                         variant="caption"
                         sx={{ color: "text.secondary" }}
                       >
-                        {formatDate(alert.date)}
+                        {formatDateVN(alert.date)}
                       </Typography>
                     </Box>
-
-                    {/* Action Buttons */}
                     <Box
                       sx={{
                         display: "flex",
@@ -339,20 +323,20 @@ export default function AlertsPage() {
                       }}
                     >
                       {!alert.read && (
-                        <Tooltip title="Mark as Read">
+                        <Tooltip title="Đánh dấu đã đọc">
                           <IconButton
                             size="small"
-                            onClick={() => handleMarkAsRead(alert.id)}
+                            onClick={() => markAsRead(alert.id)}
                             sx={{ color: severityColor }}
                           >
                             <MarkEmailRead fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       )}
-                      <Tooltip title="Delete">
+                      <Tooltip title="Xóa">
                         <IconButton
                           size="small"
-                          onClick={() => handleDelete(alert.id)}
+                          onClick={() => deleteAlert(alert.id)}
                           sx={{
                             color: "text.secondary",
                             "&:hover": { color: "error.main" },

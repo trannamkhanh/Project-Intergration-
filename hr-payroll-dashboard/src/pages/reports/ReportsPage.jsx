@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Grid from "@mui/material/Grid";
 import {
   Box,
@@ -14,44 +14,143 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Button,
+  CircularProgress,
 } from "@mui/material";
+import { Download as DownloadIcon } from "@mui/icons-material";
 import {
-  mockEmployees,
-  mockDepartments,
-  mockSalaries,
-  mockAttendance,
-  mockDividends,
-  mockDashboardStats,
-} from "../../services/mockData";
+  employeeService,
+  departmentService,
+  payrollService,
+  attendanceService,
+  dividendService,
+} from "../../services/api";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+} from "recharts";
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " \u20AB";
 
-// TAB 1 - HR Report
-const HRReport = () => {
+const CHART_COLORS = [
+  "#1565c0",
+  "#2e7d32",
+  "#7b1fa2",
+  "#ed6c02",
+  "#00838f",
+  "#6d4c41",
+];
+
+// ===== Xuất CSV =====
+function exportCSV(filename, headers, rows) {
+  const BOM = "\uFEFF";
+  const csvContent =
+    BOM +
+    headers.join(",") +
+    "\n" +
+    rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+}
+
+// ===== TAB 1 - Báo cáo nhân sự =====
+const HRReport = ({ employees, departments }) => {
+  const deptCounts = useMemo(() => {
+    const map = {};
+    employees.forEach((e) => {
+      const name = e.DepartmentName || "Khác";
+      map[name] = (map[name] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, count]) => ({ name, count }));
+  }, [employees]);
+
+  const statusCounts = useMemo(() => {
+    const map = {};
+    employees.forEach((e) => {
+      const s = e.Status || "Khác";
+      map[s] = (map[s] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, count]) => ({ name, count }));
+  }, [employees]);
+
+  const genderCounts = useMemo(() => {
+    const map = {};
+    employees.forEach((e) => {
+      const g =
+        e.Gender === "Male" ? "Nam" : e.Gender === "Female" ? "Nữ" : e.Gender;
+      map[g] = (map[g] || 0) + 1;
+    });
+    return Object.entries(map).map(([name, count]) => ({ name, count }));
+  }, [employees]);
+
+  const handleExport = () => {
+    const headers = [
+      "Họ tên",
+      "Email",
+      "Phòng ban",
+      "Chức vụ",
+      "Trạng thái",
+      "Ngày vào làm",
+    ];
+    const rows = employees.map((e) => [
+      e.FullName,
+      e.Email,
+      e.DepartmentName,
+      e.PositionName,
+      e.Status,
+      e.HireDate,
+    ]);
+    exportCSV("bao_cao_nhan_su.csv", headers, rows);
+  };
+
   return (
     <Box>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+        >
+          Xuất CSV
+        </Button>
+      </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        {/* Department Summary */}
         <Grid size={{ xs: 12, md: 6 }}>
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Employee Count by Department
+                Số lượng nhân viên theo phòng ban
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Employee Count</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Phòng ban</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        Số lượng
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDepartments.map((dept) => (
-                      <TableRow key={dept.DepartmentID} hover>
-                        <TableCell>{dept.DepartmentName}</TableCell>
-                        <TableCell align="right">{dept.EmployeeCount}</TableCell>
+                    {deptCounts.map((row) => (
+                      <TableRow key={row.name} hover>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell align="right">{row.count}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -60,27 +159,27 @@ const HRReport = () => {
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Status & Gender */}
         <Grid size={{ xs: 12, md: 3 }}>
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Status Distribution
+                Trạng thái
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Count</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Trạng thái</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        SL
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDashboardStats.statusDistribution.map((item) => (
-                      <TableRow key={item.name} hover>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell align="right">{item.value}</TableCell>
+                    {statusCounts.map((row) => (
+                      <TableRow key={row.name} hover>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell align="right">{row.count}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -89,26 +188,27 @@ const HRReport = () => {
             </CardContent>
           </Card>
         </Grid>
-
         <Grid size={{ xs: 12, md: 3 }}>
           <Card elevation={2}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Gender Distribution
+                Giới tính
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Gender</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Count</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Giới tính</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }} align="right">
+                        SL
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockDashboardStats.genderDistribution.map((item) => (
-                      <TableRow key={item.name} hover>
-                        <TableCell>{item.name}</TableCell>
-                        <TableCell align="right">{item.value}</TableCell>
+                    {genderCounts.map((row) => (
+                      <TableRow key={row.name} hover>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell align="right">{row.count}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -118,47 +218,65 @@ const HRReport = () => {
           </Card>
         </Grid>
       </Grid>
+
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Biểu đồ phân bổ nhân sự theo phòng ban
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={deptCounts}
+                  dataKey="count"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={115}
+                  label
+                >
+                  {deptCounts.map((_, idx) => (
+                    <Cell
+                      key={idx}
+                      fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  formatter={(value) => [`${value} nhân viên`, "Số lượng"]}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
     </Box>
   );
 };
 
-// TAB 2 - Payroll Report
-const PayrollReport = () => {
-  const salaryByDept = useMemo(() => {
-    const deptMap = {};
-    mockSalaries.forEach((s) => {
-      const emp = mockEmployees.find((e) => e.EmployeeID === s.EmployeeID);
-      const deptName = emp ? emp.DepartmentName : "Unknown";
-      if (!deptMap[deptName]) {
-        deptMap[deptName] = { total: 0, count: 0 };
-      }
-      deptMap[deptName].total += s.NetSalary;
-      deptMap[deptName].count += 1;
-    });
-    return Object.entries(deptMap).map(([name, data]) => ({
-      name,
-      avgSalary: Math.round(data.total / data.count),
-    }));
-  }, []);
-
+// ===== TAB 2 - Báo cáo lương =====
+const PayrollReport = ({ salaries, employees }) => {
   const summary = useMemo(() => {
-    const nets = mockSalaries.map((s) => s.NetSalary);
+    const nets = salaries.map((s) => s.NetSalary || 0);
+    if (nets.length === 0)
+      return { totalPayroll: 0, avgSalary: 0, maxSalary: 0, minSalary: 0 };
     return {
       totalPayroll: nets.reduce((a, b) => a + b, 0),
       avgSalary: Math.round(nets.reduce((a, b) => a + b, 0) / nets.length),
       maxSalary: Math.max(...nets),
       minSalary: Math.min(...nets),
     };
-  }, []);
+  }, [salaries]);
 
   const monthlyTable = useMemo(() => {
     const monthMap = {};
-    mockSalaries.forEach((s) => {
-      if (!monthMap[s.SalaryMonth]) {
-        monthMap[s.SalaryMonth] = { total: 0, count: 0 };
-      }
-      monthMap[s.SalaryMonth].total += s.NetSalary;
-      monthMap[s.SalaryMonth].count += 1;
+    salaries.forEach((s) => {
+      const m = s.SalaryMonth || "N/A";
+      if (!monthMap[m]) monthMap[m] = { total: 0, count: 0 };
+      monthMap[m].total += s.NetSalary || 0;
+      monthMap[m].count += 1;
     });
     return Object.entries(monthMap)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -167,23 +285,55 @@ const PayrollReport = () => {
         totalPayroll: data.total,
         avgSalary: Math.round(data.total / data.count),
       }));
-  }, []);
+  }, [salaries]);
+
+  const handleExport = () => {
+    const headers = [
+      "Tên nhân viên",
+      "Lương cơ bản",
+      "Thưởng",
+      "Khấu trừ",
+      "Thực nhận",
+      "Tháng",
+    ];
+    const rows = salaries.map((s) => [
+      s.EmployeeName,
+      s.BaseSalary,
+      s.Bonus,
+      s.Deductions,
+      s.NetSalary,
+      s.SalaryMonth,
+    ]);
+    exportCSV("bao_cao_luong.csv", headers, rows);
+  };
 
   const summaryCards = [
-    { label: "Total Payroll", value: summary.totalPayroll, color: "#1565c0" },
-    { label: "Average Salary", value: summary.avgSalary, color: "#7b1fa2" },
-    { label: "Max Salary", value: summary.maxSalary, color: "#2e7d32" },
-    { label: "Min Salary", value: summary.minSalary, color: "#ed6c02" },
+    { label: "Tổng quỹ lương", value: summary.totalPayroll, color: "#1565c0" },
+    { label: "Lương trung bình", value: summary.avgSalary, color: "#7b1fa2" },
+    { label: "Lương cao nhất", value: summary.maxSalary, color: "#2e7d32" },
+    { label: "Lương thấp nhất", value: summary.minSalary, color: "#ed6c02" },
   ];
 
   return (
     <Box>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+        >
+          Xuất CSV
+        </Button>
+      </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
           <Grid key={card.label} size={{ xs: 12, sm: 6, md: 3 }}>
             <Card elevation={2} sx={{ borderTop: `4px solid ${card.color}` }}>
               <CardContent>
-                <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", fontWeight: 500 }}
+                >
                   {card.label}
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -194,125 +344,211 @@ const PayrollReport = () => {
           </Grid>
         ))}
       </Grid>
-
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card elevation={2}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Average Salary by Department
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Average Salary</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {salaryByDept.map((row) => (
-                      <TableRow key={row.name} hover>
-                        <TableCell>{row.name}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.avgSalary)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card elevation={2}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                Monthly Payroll Summary
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 700 }}>Month</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Total Payroll</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }} align="right">Average Salary</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {monthlyTable.map((row) => (
-                      <TableRow key={row.month} hover>
-                        <TableCell>{row.month}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.totalPayroll)}</TableCell>
-                        <TableCell align="right">{formatCurrency(row.avgSalary)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
-  );
-};
-
-// TAB 3 - Attendance Report
-const AttendanceReport = () => {
-  const totalWorkDays = mockAttendance.reduce((s, a) => s + a.WorkDays, 0);
-  const totalLeaveDays = mockAttendance.reduce((s, a) => s + a.LeaveDays, 0);
-  const totalAbsentDays = mockAttendance.reduce((s, a) => s + a.AbsentDays, 0);
-
-  const employeeAttendance = useMemo(() => {
-    const map = {};
-    mockAttendance.forEach((a) => {
-      if (!map[a.EmployeeID]) {
-        map[a.EmployeeID] = { name: a.EmployeeName, WorkDays: 0, LeaveDays: 0, AbsentDays: 0 };
-      }
-      map[a.EmployeeID].WorkDays += a.WorkDays;
-      map[a.EmployeeID].LeaveDays += a.LeaveDays;
-      map[a.EmployeeID].AbsentDays += a.AbsentDays;
-    });
-    return Object.values(map);
-  }, []);
-
-  const summaryCards = [
-    { label: "Total Work Days", value: totalWorkDays, color: "#2e7d32" },
-    { label: "Total Leave Days", value: totalLeaveDays, color: "#ed6c02" },
-    { label: "Total Absent Days", value: totalAbsentDays, color: "#d32f2f" },
-  ];
-
-  return (
-    <Box>
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        {summaryCards.map((card) => (
-          <Grid key={card.label} size={{ xs: 12, sm: 4 }}>
-            <Card elevation={2} sx={{ borderTop: `4px solid ${card.color}` }}>
-              <CardContent>
-                <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500 }}>
-                  {card.label}
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>{card.value}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Biểu đồ xu hướng tổng lương
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <LineChart data={monthlyTable}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <RechartsTooltip
+                  formatter={(value) => [formatCurrency(value), "Giá trị"]}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="totalPayroll"
+                  name="Tổng lương"
+                  stroke="#1565c0"
+                  strokeWidth={3}
+                  dot={{ r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="avgSalary"
+                  name="Lương trung bình"
+                  stroke="#ed6c02"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Attendance by Employee
+            Tổng hợp lương theo tháng
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Employee Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">Work Days</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">Leave Days</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">Absent Days</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Tháng</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Tổng lương
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Lương trung bình
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {monthlyTable.map((row) => (
+                  <TableRow key={row.month} hover>
+                    <TableCell>{row.month}</TableCell>
+                    <TableCell align="right">
+                      {formatCurrency(row.totalPayroll)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {formatCurrency(row.avgSalary)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
+
+// ===== TAB 3 - Báo cáo chấm công =====
+const AttendanceReport = ({ attendance }) => {
+  const totalWorkDays = attendance.reduce((s, a) => s + (a.WorkDays || 0), 0);
+  const totalLeaveDays = attendance.reduce((s, a) => s + (a.LeaveDays || 0), 0);
+  const totalAbsentDays = attendance.reduce(
+    (s, a) => s + (a.AbsentDays || 0),
+    0,
+  );
+
+  const employeeAttendance = useMemo(() => {
+    const map = {};
+    attendance.forEach((a) => {
+      const id = a.EmployeeID || a.EmployeeName;
+      if (!map[id])
+        map[id] = {
+          name: a.EmployeeName,
+          WorkDays: 0,
+          LeaveDays: 0,
+          AbsentDays: 0,
+        };
+      map[id].WorkDays += a.WorkDays || 0;
+      map[id].LeaveDays += a.LeaveDays || 0;
+      map[id].AbsentDays += a.AbsentDays || 0;
+    });
+    return Object.values(map);
+  }, [attendance]);
+
+  const handleExport = () => {
+    const headers = [
+      "Tên nhân viên",
+      "Ngày làm việc",
+      "Ngày nghỉ phép",
+      "Ngày vắng mặt",
+      "Tháng",
+    ];
+    const rows = attendance.map((a) => [
+      a.EmployeeName,
+      a.WorkDays,
+      a.LeaveDays,
+      a.AbsentDays,
+      a.Month,
+    ]);
+    exportCSV("bao_cao_cham_cong.csv", headers, rows);
+  };
+
+  const summaryCards = [
+    { label: "Tổng ngày làm việc", value: totalWorkDays, color: "#2e7d32" },
+    { label: "Tổng ngày nghỉ phép", value: totalLeaveDays, color: "#ed6c02" },
+    { label: "Tổng ngày vắng mặt", value: totalAbsentDays, color: "#d32f2f" },
+  ];
+
+  return (
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+        >
+          Xuất CSV
+        </Button>
+      </Box>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        {summaryCards.map((card) => (
+          <Grid key={card.label} size={{ xs: 12, sm: 4 }}>
+            <Card elevation={2} sx={{ borderTop: `4px solid ${card.color}` }}>
+              <CardContent>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", fontWeight: 500 }}
+                >
+                  {card.label}
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                  {card.value}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Biểu đồ chấm công theo nhân viên
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <BarChart data={employeeAttendance.slice(0, 10)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <RechartsTooltip />
+                <Legend />
+                <Bar
+                  dataKey="WorkDays"
+                  name="Ngày làm"
+                  fill="#2e7d32"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar
+                  dataKey="AbsentDays"
+                  name="Ngày vắng"
+                  fill="#d32f2f"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
+      <Card elevation={2}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Chấm công theo nhân viên
+          </Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Ngày làm
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Ngày nghỉ
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Ngày vắng
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -323,7 +559,10 @@ const AttendanceReport = () => {
                     <TableCell align="right">{row.LeaveDays}</TableCell>
                     <TableCell
                       align="right"
-                      sx={{ color: row.AbsentDays > 0 ? "#d32f2f" : "inherit", fontWeight: row.AbsentDays > 0 ? 600 : 400 }}
+                      sx={{
+                        color: row.AbsentDays > 0 ? "#d32f2f" : "inherit",
+                        fontWeight: row.AbsentDays > 0 ? 600 : 400,
+                      }}
                     >
                       {row.AbsentDays}
                     </TableCell>
@@ -338,53 +577,136 @@ const AttendanceReport = () => {
   );
 };
 
-// TAB 4 - Dividend Report
-const DividendReport = () => {
-  const totalDividends = mockDividends.reduce((s, d) => s + d.DividendAmount, 0);
+// ===== TAB 4 - Báo cáo cổ tức =====
+const DividendReport = ({ dividends }) => {
+  const totalDividends = dividends.reduce(
+    (s, d) => s + (d.DividendAmount || d.Amount || 0),
+    0,
+  );
+  const avg =
+    dividends.length > 0 ? Math.round(totalDividends / dividends.length) : 0;
+
+  const dividendByEmployee = useMemo(() => {
+    const map = {};
+    dividends.forEach((d) => {
+      const name = d.EmployeeName || "N/A";
+      const amount = d.DividendAmount || d.Amount || 0;
+      map[name] = (map[name] || 0) + amount;
+    });
+
+    return Object.entries(map)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10);
+  }, [dividends]);
+
+  const handleExport = () => {
+    const headers = ["Tên nhân viên", "Số tiền cổ tức", "Ngày"];
+    const rows = dividends.map((d) => [
+      d.EmployeeName,
+      d.DividendAmount || d.Amount,
+      d.DividendDate || d.Date,
+    ]);
+    exportCSV("bao_cao_co_tuc.csv", headers, rows);
+  };
 
   const summaryCards = [
-    { label: "Total Dividends", value: formatCurrency(totalDividends), color: "#1565c0" },
-    { label: "Number of Recipients", value: mockDividends.length, color: "#7b1fa2" },
-    { label: "Average Dividend", value: formatCurrency(Math.round(totalDividends / mockDividends.length)), color: "#2e7d32" },
+    {
+      label: "Tổng cổ tức",
+      value: formatCurrency(totalDividends),
+      color: "#1565c0",
+    },
+    { label: "Số người nhận", value: dividends.length, color: "#7b1fa2" },
+    {
+      label: "Cổ tức trung bình",
+      value: formatCurrency(avg),
+      color: "#2e7d32",
+    },
   ];
 
   return (
     <Box>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+        >
+          Xuất CSV
+        </Button>
+      </Box>
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {summaryCards.map((card) => (
           <Grid key={card.label} size={{ xs: 12, sm: 4 }}>
             <Card elevation={2} sx={{ borderTop: `4px solid ${card.color}` }}>
               <CardContent>
-                <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.secondary", fontWeight: 500 }}
+                >
                   {card.label}
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700 }}>{card.value}</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  {card.value}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
         ))}
       </Grid>
-
+      <Card elevation={2} sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Top nhân viên theo cổ tức
+          </Typography>
+          <Box sx={{ width: "100%", height: 320 }}>
+            <ResponsiveContainer>
+              <BarChart data={dividendByEmployee}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <RechartsTooltip
+                  formatter={(value) => [formatCurrency(value), "Cổ tức"]}
+                />
+                <Bar
+                  dataKey="amount"
+                  name="Tổng cổ tức"
+                  fill="#7b1fa2"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </CardContent>
+      </Card>
       <Card elevation={2}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-            Dividend Details
+            Chi tiết cổ tức
           </Typography>
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Employee Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">Dividend Amount</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }} align="right">Dividend Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Số tiền
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 700 }} align="right">
+                    Ngày
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mockDividends.map((row) => (
+                {dividends.map((row) => (
                   <TableRow key={row.DividendID} hover>
                     <TableCell>{row.EmployeeName}</TableCell>
-                    <TableCell align="right">{formatCurrency(row.DividendAmount)}</TableCell>
-                    <TableCell align="right">{row.DividendDate}</TableCell>
+                    <TableCell align="right">
+                      {formatCurrency(row.DividendAmount || row.Amount || 0)}
+                    </TableCell>
+                    <TableCell align="right">
+                      {row.DividendDate || row.Date}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -396,14 +718,61 @@ const DividendReport = () => {
   );
 };
 
-// Main Reports Page
+// ===== Main Reports Page =====
 const ReportsPage = () => {
   const [tabIndex, setTabIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [salaries, setSalaries] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [dividends, setDividends] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [empRes, deptRes, salRes, attRes, divRes] = await Promise.all([
+          employeeService.getAll(),
+          departmentService.getAll(),
+          payrollService.getAll(),
+          attendanceService.getAll(),
+          dividendService.getAll(),
+        ]);
+        setEmployees(empRes.data);
+        setDepartments(deptRes.data);
+        setSalaries(salRes.data);
+        setAttendance(attRes.data);
+        setDividends(divRes.data);
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu báo cáo:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: 400,
+        }}
+      >
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Reports &amp; Analytics
+        Báo cáo & Phân tích
       </Typography>
 
       <Paper elevation={2} sx={{ mb: 3 }}>
@@ -414,17 +783,21 @@ const ReportsPage = () => {
           scrollButtons="auto"
           sx={{ "& .MuiTab-root": { fontWeight: 600, textTransform: "none" } }}
         >
-          <Tab label="HR Report" />
-          <Tab label="Payroll Report" />
-          <Tab label="Attendance Report" />
-          <Tab label="Dividend Report" />
+          <Tab label="Báo cáo nhân sự" />
+          <Tab label="Báo cáo lương" />
+          <Tab label="Báo cáo chấm công" />
+          <Tab label="Báo cáo cổ tức" />
         </Tabs>
       </Paper>
 
-      {tabIndex === 0 && <HRReport />}
-      {tabIndex === 1 && <PayrollReport />}
-      {tabIndex === 2 && <AttendanceReport />}
-      {tabIndex === 3 && <DividendReport />}
+      {tabIndex === 0 && (
+        <HRReport employees={employees} departments={departments} />
+      )}
+      {tabIndex === 1 && (
+        <PayrollReport salaries={salaries} employees={employees} />
+      )}
+      {tabIndex === 2 && <AttendanceReport attendance={attendance} />}
+      {tabIndex === 3 && <DividendReport dividends={dividends} />}
     </Box>
   );
 };

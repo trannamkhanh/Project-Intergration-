@@ -32,6 +32,11 @@ export const AuthProvider = ({ children }) => {
   const hasRole = useCallback(
     (role) => {
       if (!user) return false;
+      // Check if user has role in roles array (new RBAC) or role property (legacy)
+      if (user.roles && Array.isArray(user.roles)) {
+        return user.roles.some(r => r.role_name === role) || user.roles.some(r => r.role_name === "Admin");
+      }
+      // Fallback to legacy role property
       return user.role === role || user.role === "Admin";
     },
     [user],

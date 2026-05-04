@@ -17,6 +17,7 @@ import {
   Login as LoginIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthContext";
+import { authService } from "../../services/api";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -37,32 +38,27 @@ const LoginPage = () => {
     setError("");
 
     if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password.");
+      setError("Vui lòng nhập tên đăng nhập và mật khẩu.");
       return;
     }
 
     setLoading(true);
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Mock authentication
-    if (username === "admin" && password === "admin123") {
-      const mockUser = {
-        id: 1,
-        fullName: "Admin User",
-        email: "admin@company.com",
-        role: "Admin",
-      };
-      const mockToken = "mock-jwt-token-xyz-123";
-
-      login(mockUser, mockToken);
+    try {
+      const res = await authService.login({ username, password });
+      const { token, user } = res.data;
+      login(user, token);
       navigate("/");
-    } else {
-      setError("Invalid username or password. Please try again.");
+    } catch (err) {
+      const msg =
+        err.response?.data?.error ||
+        (err.request
+          ? "Khong ket noi duoc toi server API. Vui long kiem tra dia chi API va backend."
+          : "Ten dang nhap hoac mat khau khong dung.");
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -86,18 +82,13 @@ const LoginPage = () => {
         }}
       >
         <CardContent sx={{ p: 4 }}>
-          {/* Brand Title */}
           <Typography
             variant="h4"
             component="h1"
             align="center"
-            sx={{
-              fontWeight: 700,
-              color: "#1565c0",
-              mb: 0.5,
-            }}
+            sx={{ fontWeight: 700, color: "#1565c0", mb: 0.5 }}
           >
-            HR & Payroll Dashboard
+            HR & Quản lý lương
           </Typography>
 
           <Typography
@@ -105,20 +96,18 @@ const LoginPage = () => {
             align="center"
             sx={{ color: "text.secondary", mb: 4 }}
           >
-            Sign in to your account
+            Đăng nhập vào hệ thống
           </Typography>
 
-          {/* Error Alert */}
           {error && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError("")}>
               {error}
             </Alert>
           )}
 
-          {/* Login Form */}
           <Box component="form" onSubmit={handleSubmit} noValidate>
             <TextField
-              label="Username"
+              label="Tên đăng nhập"
               variant="outlined"
               fullWidth
               required
@@ -130,7 +119,7 @@ const LoginPage = () => {
             />
 
             <TextField
-              label="Password"
+              label="Mật khẩu"
               variant="outlined"
               fullWidth
               required
@@ -142,13 +131,7 @@ const LoginPage = () => {
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                      onClick={handleTogglePassword}
-                      edge="end"
-                    >
+                    <IconButton onClick={handleTogglePassword} edge="end">
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
@@ -171,8 +154,21 @@ const LoginPage = () => {
                 borderRadius: 2,
               }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
+          </Box>
+
+          <Box sx={{ mt: 3, p: 2, bgcolor: "#f5f5f5", borderRadius: 2 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 1, fontWeight: 600 }}
+            >
+              Tài khoản thử nghiệm:
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Admin: admin / admin123 (toàn quyền)
+            </Typography>
           </Box>
         </CardContent>
       </Card>

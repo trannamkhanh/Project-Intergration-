@@ -50,7 +50,7 @@ const DividendsPage = () => {
         const res = await dividendService.getAll();
         setDividends(res.data);
       } catch (error) {
-        console.error("Loi khi tai du lieu co tuc:", error);
+        console.error("Lỗi khi tải dữ liệu cổ tức:", error);
       } finally {
         setLoading(false);
       }
@@ -106,41 +106,29 @@ const DividendsPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    if (editingDividend) {
-      setDividends((prev) =>
-        prev.map((d) =>
-          d.DividendID === editingDividend.DividendID
-            ? {
-                ...d,
-                EmployeeName: formData.EmployeeName,
-                DividendAmount: Number(formData.DividendAmount),
-                Amount: Number(formData.DividendAmount),
-                DividendDate: formData.DividendDate,
-                Date: formData.DividendDate,
-              }
-            : d,
-        ),
-      );
-    } else {
-      const newId =
-        dividends.length > 0
-          ? Math.max(...dividends.map((d) => d.DividendID)) + 1
-          : 1;
-      setDividends((prev) => [
-        ...prev,
-        {
-          DividendID: newId,
-          EmployeeID: newId,
-          EmployeeName: formData.EmployeeName,
-          DividendAmount: Number(formData.DividendAmount),
-          Amount: Number(formData.DividendAmount),
-          DividendDate: formData.DividendDate,
-          Date: formData.DividendDate,
-        },
-      ]);
+  const handleSave = async () => {
+    try {
+      const payload = {
+        EmployeeID: editingDividend?.EmployeeID,
+        DividendAmount: Number(formData.DividendAmount),
+        DividendDate: formData.DividendDate,
+      };
+      if (editingDividend) {
+        const res = await dividendService.update(editingDividend.DividendID, payload);
+        setDividends((prev) =>
+          prev.map((d) =>
+            d.DividendID === editingDividend.DividendID ? res.data : d,
+          ),
+        );
+      } else {
+        const res = await dividendService.create(payload);
+        setDividends((prev) => [...prev, res.data]);
+      }
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Lỗi khi lưu cổ tức:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi lưu cổ tức");
     }
-    handleCloseDialog();
   };
 
   const handleOpenDelete = (dividend) => {
@@ -148,29 +136,35 @@ const DividendsPage = () => {
     setDeleteDialog(true);
   };
 
-  const handleDelete = () => {
-    setDividends((prev) =>
-      prev.filter((d) => d.DividendID !== deletingDividend.DividendID),
-    );
+  const handleDelete = async () => {
+    try {
+      await dividendService.delete(deletingDividend.DividendID);
+      setDividends((prev) =>
+        prev.filter((d) => d.DividendID !== deletingDividend.DividendID),
+      );
+    } catch (error) {
+      console.error("Lỗi khi xóa cổ tức:", error);
+      alert(error.response?.data?.error || "Có lỗi xảy ra khi xóa cổ tức");
+    }
     setDeleteDialog(false);
     setDeletingDividend(null);
   };
 
   const summaryCards = [
     {
-      title: "Tong co tuc",
+      title: "Tổng cổ tức",
       value: formatVND(summaryStats.totalAmount),
       color: "#1565c0",
       bgColor: "#e3f2fd",
     },
     {
-      title: "So nguoi nhan",
+      title: "Số người nhận",
       value: summaryStats.count,
       color: "#2e7d32",
       bgColor: "#e8f5e9",
     },
     {
-      title: "Co tuc trung binh",
+      title: "Cổ tức trung bình",
       value: formatVND(summaryStats.average),
       color: "#e65100",
       bgColor: "#fff3e0",
@@ -181,7 +175,7 @@ const DividendsPage = () => {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Dang tai du lieu...</Typography>
+        <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
       </Box>
     );
   }
@@ -199,7 +193,7 @@ const DividendsPage = () => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Savings sx={{ fontSize: 32, color: "primary.main" }} />
           <Typography variant="h4" fontWeight={700}>
-            Co tuc
+            Cổ tức
           </Typography>
         </Box>
         <Button
@@ -208,13 +202,13 @@ const DividendsPage = () => {
           onClick={handleOpenAdd}
           sx={{ textTransform: "none" }}
         >
-          Them co tuc
+          Thêm cổ tức
         </Button>
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }} elevation={1}>
         <TextField
-          label="Tim kiem nhan vien"
+          label="Tìm kiếm nhân viên"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           fullWidth
@@ -263,15 +257,15 @@ const DividendsPage = () => {
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 700, width: 80 }}>ID</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Ten nhan vien</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>Tên nhân viên</TableCell>
               <TableCell sx={{ fontWeight: 700 }} align="right">
-                So tien co tuc
+                Số tiền cổ tức
               </TableCell>
               <TableCell sx={{ fontWeight: 700 }} align="center">
-                Ngay
+                Ngày
               </TableCell>
               <TableCell sx={{ fontWeight: 700 }} align="center">
-                Thao tac
+                Thao tác
               </TableCell>
             </TableRow>
           </TableHead>
@@ -301,7 +295,7 @@ const DividendsPage = () => {
                     <Chip label={dividend.DividendDate || dividend.Date} size="small" />
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Sua">
+                    <Tooltip title="Sửa">
                       <IconButton
                         size="small"
                         color="primary"
@@ -310,7 +304,7 @@ const DividendsPage = () => {
                         <Edit fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Xoa">
+                    <Tooltip title="Xóa">
                       <IconButton
                         size="small"
                         color="error"
@@ -329,7 +323,7 @@ const DividendsPage = () => {
                     sx={{ fontSize: 48, color: "text.disabled", mb: 1 }}
                   />
                   <Typography variant="body1" color="text.secondary">
-                    Khong tim thay co tuc nao
+                    Không tìm thấy cổ tức nào
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -345,14 +339,14 @@ const DividendsPage = () => {
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700 }}>
-          {editingDividend ? "Sua co tuc" : "Them co tuc"}
+          {editingDividend ? "Sửa cổ tức" : "Thêm cổ tức"}
         </DialogTitle>
         <DialogContent dividers>
           <Box
             sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}
           >
             <TextField
-              label="Ten nhan vien"
+              label="Tên nhân viên"
               name="EmployeeName"
               value={formData.EmployeeName}
               onChange={handleChange}
@@ -360,7 +354,7 @@ const DividendsPage = () => {
               autoFocus
             />
             <TextField
-              label="So tien co tuc"
+              label="Số tiền cổ tức"
               name="DividendAmount"
               type="number"
               value={formData.DividendAmount}
@@ -368,7 +362,7 @@ const DividendsPage = () => {
               fullWidth
             />
             <TextField
-              label="Ngay co tuc"
+              label="Ngày cổ tức"
               name="DividendDate"
               type="date"
               value={formData.DividendDate}
@@ -380,7 +374,7 @@ const DividendsPage = () => {
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={handleCloseDialog} color="inherit">
-            Huy
+            Hủy
           </Button>
           <Button
             onClick={handleSave}
@@ -391,7 +385,7 @@ const DividendsPage = () => {
               !formData.DividendDate
             }
           >
-            {editingDividend ? "Cap nhat" : "Tao moi"}
+            {editingDividend ? "Cập nhật" : "Tạo mới"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -402,19 +396,19 @@ const DividendsPage = () => {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Xoa co tuc</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Xóa cổ tức</DialogTitle>
         <DialogContent>
           <Typography sx={{ mt: 1 }}>
-            Ban co chac chan muon xoa co tuc cua{" "}
+            Bạn có chắc chắn muốn xóa cổ tức của{" "}
             <strong>{deletingDividend?.EmployeeName}</strong>?
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setDeleteDialog(false)} color="inherit">
-            Huy
+            Hủy
           </Button>
           <Button onClick={handleDelete} variant="contained" color="error">
-            Xoa
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>

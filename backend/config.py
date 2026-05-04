@@ -8,12 +8,15 @@ SQLSERVER_DRIVER = os.getenv("SQLSERVER_DRIVER", "ODBC Driver 17 for SQL Server"
 SQLSERVER_SERVER = os.getenv("SQLSERVER_SERVER", "localhost")
 SQLSERVER_DATABASE = os.getenv("SQLSERVER_DATABASE", "HUMAN")
 
+# ── SQL Server (ERD DB) for RBAC ──
+ERD_DB_DATABASE = os.getenv("ERD_DB_DATABASE", "ERD DB")
+
 # ── MySQL (PAYROLL) ──
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "PAYROLL")
 MYSQL_USER = os.getenv("MYSQL_USER", "root")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "Taodeptrai123")
 
 # ── JWT ──
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-secret-key-change-in-production")
@@ -26,6 +29,17 @@ def get_sqlserver_connection():
         f"DRIVER={{{SQLSERVER_DRIVER}}};"
         f"SERVER={SQLSERVER_SERVER};"
         f"DATABASE={SQLSERVER_DATABASE};"
+        f"Trusted_Connection=yes;"
+    )
+
+
+def get_erd_db_connection():
+    """Tra ve connection toi SQL Server (ERD DB) for RBAC."""
+    import pyodbc
+    return pyodbc.connect(
+        f"DRIVER={{{SQLSERVER_DRIVER}}};"
+        f"SERVER={SQLSERVER_SERVER};"
+        f"DATABASE={ERD_DB_DATABASE};"
         f"Trusted_Connection=yes;"
     )
 
