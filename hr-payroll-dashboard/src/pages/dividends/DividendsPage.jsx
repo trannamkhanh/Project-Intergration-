@@ -24,7 +24,7 @@ import {
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { Add, Edit, Delete, Savings } from "@mui/icons-material";
-import { dividendService } from "../../services/api";
+import { dividendService, employeeService } from "../../services/api";
 
 const formatVND = (value) =>
   new Intl.NumberFormat("vi-VN").format(value) + " \u20AB";
@@ -38,6 +38,7 @@ const DividendsPage = () => {
   const [editingDividend, setEditingDividend] = useState(null);
   const [deletingDividend, setDeletingDividend] = useState(null);
   const [formData, setFormData] = useState({
+    EmployeeID: "",
     EmployeeName: "",
     DividendAmount: "",
     DividendDate: "",
@@ -82,7 +83,7 @@ const DividendsPage = () => {
 
   const handleOpenAdd = () => {
     setEditingDividend(null);
-    setFormData({ EmployeeName: "", DividendAmount: "", DividendDate: "" });
+    setFormData({ EmployeeID: "", EmployeeName: "", DividendAmount: "", DividendDate: "" });
     setOpenDialog(true);
   };
 
@@ -101,15 +102,27 @@ const DividendsPage = () => {
     setEditingDividend(null);
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Auto-fetch employee name when EmployeeID is entered
+    if (name === "EmployeeID" && value) {
+      try {
+        const res = await employeeService.getById(value);
+        if (res.data) {
+          setFormData((prev) => ({ ...prev, EmployeeName: res.data.FullName || "" }));
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin nhân viên:", error);
+      }
+    }
   };
 
   const handleSave = async () => {
     try {
       const payload = {
-        EmployeeID: editingDividend?.EmployeeID,
+        EmployeeID: editingDividend ? editingDividend.EmployeeID : formData.EmployeeID,
         DividendAmount: Number(formData.DividendAmount),
         DividendDate: formData.DividendDate,
       };
@@ -346,12 +359,22 @@ const DividendsPage = () => {
             sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}
           >
             <TextField
+              label="Mã nhân viên (Employee ID)"
+              name="EmployeeID"
+              value={formData.EmployeeID}
+              onChange={handleChange}
+              fullWidth
+              autoFocus
+              required
+              helperText="Nhập mã nhân viên để thêm cổ tức"
+            />
+            <TextField
               label="Tên nhân viên"
               name="EmployeeName"
               value={formData.EmployeeName}
               onChange={handleChange}
               fullWidth
-              autoFocus
+              disabled
             />
             <TextField
               label="Số tiền cổ tức"
@@ -360,6 +383,7 @@ const DividendsPage = () => {
               value={formData.DividendAmount}
               onChange={handleChange}
               fullWidth
+              required
             />
             <TextField
               label="Ngày cổ tức"
@@ -369,6 +393,7 @@ const DividendsPage = () => {
               onChange={handleChange}
               fullWidth
               InputLabelProps={{ shrink: true }}
+              required
             />
           </Box>
         </DialogContent>
@@ -380,7 +405,7 @@ const DividendsPage = () => {
             onClick={handleSave}
             variant="contained"
             disabled={
-              !formData.EmployeeName ||
+              (!editingDividend && !formData.EmployeeID) ||
               !formData.DividendAmount ||
               !formData.DividendDate
             }

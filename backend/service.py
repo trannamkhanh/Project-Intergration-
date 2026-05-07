@@ -30,8 +30,11 @@ def convert_mysql_row(row):
         if isinstance(row[key], Decimal):
             row[key] = float(row[key])
         elif hasattr(row[key], 'isoformat'):
+            # Keep date as string in YYYY-MM-DD format for MySQL DATE columns
+            # Only convert to YYYY-MM for display if needed
             if key in ('SalaryMonth', 'Month'):
-                row[key] = row[key].strftime('%Y-%m')
+                # Keep as date string, frontend will handle display format
+                pass  # Don't convert, keep original date string
             else:
                 row[key] = row[key].isoformat()
     return row
@@ -441,13 +444,43 @@ def get_dividends():
 @api.route("/dividends", methods=["POST"])
 def create_dividend():
     data = request.get_json()
+    
+    # Handle different possible field names for EmployeeID (case-insensitive)
+    employee_id = None
+    for key in ('EmployeeID', 'employeeId', 'employee_id', 'employeeID', 'employeeid'):
+        if key in data:
+            employee_id = data[key]
+            break
+    
+    if not employee_id:
+        return jsonify({"error": "EmployeeID is required. Received fields: " + str(list(data.keys()))}), 400
+    
+    # Convert to int if needed (SQL Server expects numeric)
+    try:
+        employee_id = int(employee_id)
+    except (ValueError, TypeError):
+        return jsonify({"error": "EmployeeID must be a number. Received: " + str(employee_id)}), 400
+    
+    # Get DividendAmount with default 0
+    divid_end_amount = data.get("DividendAmount", data.get("dividendAmount", 0))
+    
+    # Get DividendDate
+    divid_end_date = data.get("DividendDate", data.get("dividendDate"))
+    
     conn = get_sqlserver_connection()
     cursor = conn.cursor()
+    
+    # Verify employee exists
+    cursor.execute("SELECT COUNT(*) FROM Employees WHERE EmployeeID = ?", employee_id)
+    if cursor.fetchone()[0] == 0:
+        conn.close()
+        return jsonify({"error": "Employee with ID " + str(employee_id) + " does not exist"}), 400
+    
     cursor.execute("""
         INSERT INTO Dividends (EmployeeID, DividendAmount, DividendDate)
         OUTPUT INSERTED.DividendID
         VALUES (?, ?, ?)
-    """, data.get("EmployeeID"), data.get("DividendAmount"), data.get("DividendDate"))
+    """, employee_id, divid_end_amount, divid_end_date)
     new_id = cursor.fetchone()[0]
     conn.commit()
 
@@ -465,12 +498,22 @@ def create_dividend():
 @api.route("/dividends/<int:id>", methods=["PUT"])
 def update_dividend(id):
     data = request.get_json()
+    
+    # Handle different possible field names for EmployeeID
+    employee_id = (data.get("EmployeeID") or 
+                   data.get("employeeId") or 
+                   data.get("employee_id") or 
+                   data.get("employeeID"))
+    
+    if not employee_id:
+        return jsonify({"error": "EmployeeID is required"}), 400
+    
     conn = get_sqlserver_connection()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE Dividends SET EmployeeID=?, DividendAmount=?, DividendDate=?
         WHERE DividendID=?
-    """, data.get("EmployeeID"), data.get("DividendAmount"), data.get("DividendDate"), id)
+    """, employee_id, data.get("DividendAmount"), data.get("DividendDate"), id)
     conn.commit()
 
     cursor.execute("""
@@ -519,10 +562,16 @@ def create_salary():
     data = request.get_json()
     conn = get_mysql_connection()
     cursor = conn.cursor()
+    
+    # Convert SalaryMonth to proper date format (first day of month)
+    salary_month = data.get("SalaryMonth")
+    if salary_month and len(salary_month) == 7:  # Format: YYYY-MM
+        salary_month = salary_month + "-01"  # Convert to YYYY-MM-DD
+    
     cursor.execute("""
         INSERT INTO salaries (EmployeeID, SalaryMonth, BaseSalary, Bonus, Deductions, NetSalary)
         VALUES (%s, %s, %s, %s, %s, %s)
-    """, (data.get("EmployeeID"), data.get("SalaryMonth"), data.get("BaseSalary"),
+    """, (data.get("EmployeeID"), salary_month, data.get("BaseSalary"),
           data.get("Bonus", 0), data.get("Deductions", 0), data.get("NetSalary")))
     conn.commit()
     new_id = cursor.lastrowid
@@ -544,10 +593,16 @@ def update_salary(id):
     data = request.get_json()
     conn = get_mysql_connection()
     cursor = conn.cursor()
+    
+    # Convert SalaryMonth to proper date format (first day of month)
+    salary_month = data.get("SalaryMonth")
+    if salary_month and len(salary_month) == 7:  # Format: YYYY-MM
+        salary_month = salary_month + "-01"  # Convert to YYYY-MM-DD
+    
     cursor.execute("""
         UPDATE salaries SET EmployeeID=%s, SalaryMonth=%s, BaseSalary=%s, Bonus=%s, Deductions=%s, NetSalary=%s
         WHERE SalaryID=%s
-    """, (data.get("EmployeeID"), data.get("SalaryMonth"), data.get("BaseSalary"),
+    """, (data.get("EmployeeID"), salary_month, data.get("BaseSalary"),
           data.get("Bonus", 0), data.get("Deductions", 0), data.get("NetSalary"), id))
     conn.commit()
 
@@ -599,11 +654,17 @@ def create_attendance():
     data = request.get_json()
     conn = get_mysql_connection()
     cursor = conn.cursor()
+    
+    # Convert AttendanceMonth to proper date format (first day of month)
+    att_month = data.get("Month")
+    if att_month and len(att_month) == 7:  # Format: YYYY-MM
+        att_month = att_month + "-01"  # Convert to YYYY-MM-DD
+    
     cursor.execute("""
         INSERT INTO attendance (EmployeeID, WorkDays, AbsentDays, LeaveDays, AttendanceMonth)
         VALUES (%s, %s, %s, %s, %s)
     """, (data.get("EmployeeID"), data.get("WorkDays"), data.get("AbsentDays", 0),
-          data.get("LeaveDays", 0), data.get("Month")))
+          data.get("LeaveDays", 0), att_month))
     conn.commit()
     new_id = cursor.lastrowid
 
@@ -625,11 +686,17 @@ def update_attendance(id):
     data = request.get_json()
     conn = get_mysql_connection()
     cursor = conn.cursor()
+    
+    # Convert AttendanceMonth to proper date format (first day of month)
+    att_month = data.get("Month")
+    if att_month and len(att_month) == 7:  # Format: YYYY-MM
+        att_month = att_month + "-01"  # Convert to YYYY-MM-DD
+    
     cursor.execute("""
         UPDATE attendance SET EmployeeID=%s, WorkDays=%s, AbsentDays=%s, LeaveDays=%s, AttendanceMonth=%s
         WHERE AttendanceID=%s
     """, (data.get("EmployeeID"), data.get("WorkDays"), data.get("AbsentDays", 0),
-          data.get("LeaveDays", 0), data.get("Month"), id))
+          data.get("LeaveDays", 0), att_month, id))
     conn.commit()
 
     cursor.execute("""
